@@ -1,0 +1,1432 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>NAGICO Vehicle Premium Calculator – Curaçao</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --navy:      #0B1F3A;
+    --navy-mid:  #162E50;
+    --navy-lite: #1E3F6E;
+    --gold:      #D4952A;
+    --gold-lite: #F5C05A;
+    --gold-pale: #FDF3DC;
+    --teal:      #0E7B6C;
+    --teal-lite: #12A898;
+    --teal-pale: #E0F5F2;
+    --red:       #C0392B;
+    --red-pale:  #FDEDEB;
+    --surface:   #F7F9FC;
+    --card:      #FFFFFF;
+    --border:    #D8E2EF;
+    --text:      #0B1F3A;
+    --muted:     #5A6E87;
+    --faint:     #9BAEC4;
+    --shadow:    0 2px 16px rgba(11,31,58,0.10);
+    --shadow-lg: 0 8px 40px rgba(11,31,58,0.16);
+    --radius:    10px;
+    --radius-lg: 16px;
+    --mono:      'DM Mono', monospace;
+    --sans:      'Sora', sans-serif;
+  }
+
+  body {
+    font-family: var(--sans);
+    background: var(--surface);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* ─── HEADER ─────────────────────────────────────── */
+  .app-header {
+    background: var(--navy);
+    padding: 0 2.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 64px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    color: white;
+    font-size: 15px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+  }
+  .logo-icon {
+    width: 34px; height: 34px;
+    background: var(--gold);
+    border-radius: 8px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .logo-icon svg { width: 18px; height: 18px; fill: white; }
+  .header-badge {
+    background: var(--navy-lite);
+    color: var(--gold-lite);
+    font-family: var(--mono);
+    font-size: 11px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    letter-spacing: 0.06em;
+  }
+
+  /* ─── LAYOUT ─────────────────────────────────────── */
+  .app-body {
+    display: grid;
+    grid-template-columns: 340px 1fr 280px;
+    gap: 0;
+    min-height: calc(100vh - 64px);
+  }
+
+  /* ─── SIDEBAR (left) ─────────────────────────────── */
+  .sidebar {
+    background: var(--card);
+    border-right: 1px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 1.25rem;
+  }
+
+  .section-title {
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--faint);
+    margin-bottom: 0.6rem;
+  }
+
+  .field-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+  }
+  .field label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--muted);
+    letter-spacing: 0.03em;
+  }
+  .field input, .field select {
+    font-family: var(--sans);
+    font-size: 13px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0 10px;
+    background: var(--surface);
+    color: var(--text);
+    width: 100%;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .field select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%235A6E87' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+  .field input:focus, .field select:focus {
+    outline: none;
+    border-color: var(--teal-lite);
+    box-shadow: 0 0 0 3px rgba(14,123,108,0.12);
+  }
+  .field input[type="number"] { font-family: var(--mono); }
+
+  .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+  .field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+  /* checkboxes */
+  .check-group {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 6px;
+  }
+  .check-item {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 7px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s;
+    user-select: none;
+  }
+  .check-item:hover { border-color: var(--teal-lite); }
+  .check-item input[type="checkbox"] {
+    width: 15px; height: 15px;
+    accent-color: var(--teal);
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+  .check-item span {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+    line-height: 1.3;
+  }
+  .check-item.active {
+    border-color: var(--teal);
+    background: var(--teal-pale);
+  }
+
+  .divider {
+    height: 1px;
+    background: var(--border);
+    margin: 0.25rem 0;
+  }
+
+  /* ─── MAIN CENTER ────────────────────────────────── */
+  .main {
+    padding: 2rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+    overflow-y: auto;
+  }
+
+  .page-title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--navy);
+    letter-spacing: -0.02em;
+  }
+  .page-sub {
+    font-size: 13px;
+    color: var(--muted);
+    margin-top: 2px;
+  }
+
+  .calc-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    height: 50px;
+    background: var(--navy);
+    color: white;
+    border: none;
+    border-radius: var(--radius-lg);
+    font-family: var(--sans);
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.1s;
+    position: relative;
+    overflow: hidden;
+  }
+  .calc-btn:hover { background: var(--navy-lite); }
+  .calc-btn:active { transform: scale(0.99); }
+  .calc-btn .btn-shine {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(90deg, transparent 0%, rgba(255,255,255,0.06) 50%, transparent 100%);
+    transform: translateX(-100%);
+    transition: transform 0s;
+  }
+  .calc-btn:hover .btn-shine { transform: translateX(100%); transition: transform 0.5s; }
+
+  /* ─── BREAKDOWN CARD ─────────────────────────────── */
+  .breakdown-card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    box-shadow: var(--shadow);
+  }
+  .breakdown-header {
+    background: var(--navy);
+    padding: 1rem 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .breakdown-header h3 {
+    color: white;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .breakdown-header .step-badge {
+    background: var(--gold);
+    color: var(--navy);
+    font-family: var(--mono);
+    font-size: 11px;
+    font-weight: 500;
+    padding: 2px 9px;
+    border-radius: 20px;
+  }
+
+  .step-table { width: 100%; border-collapse: collapse; }
+  .step-table tr { border-bottom: 1px solid var(--border); }
+  .step-table tr:last-child { border-bottom: none; }
+  .step-table td {
+    padding: 10px 1.25rem;
+    font-size: 13px;
+    vertical-align: middle;
+  }
+  .step-table .step-label {
+    color: var(--muted);
+    width: 60%;
+  }
+  .step-table .step-num {
+    font-family: var(--mono);
+    font-size: 13px;
+    font-weight: 500;
+    text-align: right;
+  }
+  .step-table .step-num.positive { color: var(--teal); }
+  .step-table .step-num.negative { color: var(--red); }
+  .step-table .step-num.neutral  { color: var(--text); }
+  .step-table tr.subtotal td { background: #F0F5FF; }
+  .step-table tr.subtotal .step-label { font-weight: 600; color: var(--navy); }
+  .step-table tr.subtotal .step-num   { font-weight: 600; color: var(--navy); }
+
+  .step-num-badge {
+    display: inline-block;
+    background: var(--navy);
+    color: var(--gold-lite);
+    font-family: var(--mono);
+    font-size: 10px;
+    width: 20px; height: 20px;
+    border-radius: 50%;
+    text-align: center;
+    line-height: 20px;
+    margin-right: 8px;
+    flex-shrink: 0;
+  }
+
+  .zero-row td { opacity: 0.4; }
+
+  /* ─── TOTAL BOX ──────────────────────────────────── */
+  .total-box {
+    background: var(--navy);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    box-shadow: var(--shadow-lg);
+    position: relative;
+    overflow: hidden;
+  }
+  .total-box::before {
+    content: '';
+    position: absolute;
+    top: -30px; right: -30px;
+    width: 120px; height: 120px;
+    border-radius: 50%;
+    background: rgba(212,149,42,0.12);
+  }
+  .total-label { color: rgba(255,255,255,0.65); font-size: 12px; font-weight: 500; letter-spacing: 0.08em; text-transform: uppercase; }
+  .total-amount { color: white; font-family: var(--mono); font-size: 32px; font-weight: 500; letter-spacing: -0.02em; margin-top: 4px; }
+  .total-currency { color: var(--gold-lite); font-size: 14px; font-weight: 500; }
+  .total-min-badge {
+    background: var(--gold);
+    color: var(--navy);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 4px 12px;
+    border-radius: 20px;
+    letter-spacing: 0.04em;
+  }
+
+  /* ─── RIGHT PANEL ────────────────────────────────── */
+  .right-panel {
+    background: var(--card);
+    border-left: 1px solid var(--border);
+    padding: 1.5rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+  }
+
+  .metric-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    background: var(--surface);
+  }
+  .metric-label { font-size: 10px; font-weight: 600; letter-spacing: 0.1em; text-transform: uppercase; color: var(--faint); margin-bottom: 4px; }
+  .metric-value { font-family: var(--mono); font-size: 20px; font-weight: 500; color: var(--navy); }
+  .metric-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+
+  .info-box {
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    font-size: 12px;
+    line-height: 1.6;
+  }
+  .info-box.info   { background: var(--teal-pale);  color: var(--teal);  border: 1px solid rgba(14,123,108,0.2); }
+  .info-box.warn   { background: var(--gold-pale);  color: #8B5E0A;      border: 1px solid rgba(212,149,42,0.25); }
+  .info-box.error  { background: var(--red-pale);   color: var(--red);   border: 1px solid rgba(192,57,43,0.2); }
+  .info-box strong { font-weight: 600; display: block; margin-bottom: 3px; }
+
+  /* Watermark when no calc done */
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 3rem 2rem;
+    text-align: center;
+    gap: 12px;
+    color: var(--faint);
+  }
+  .empty-icon { font-size: 40px; opacity: 0.4; }
+  .empty-state p { font-size: 13px; line-height: 1.6; max-width: 240px; }
+
+  .hidden { display: none !important; }
+
+  /* mini toggle */
+  .toggle-field {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+  }
+  .toggle-field label { font-size: 12px; font-weight: 500; color: var(--muted); cursor: pointer; }
+  .toggle-switch {
+    width: 36px; height: 20px;
+    background: var(--border);
+    border-radius: 10px;
+    position: relative;
+    transition: background 0.2s;
+    cursor: pointer;
+    border: none;
+    flex-shrink: 0;
+  }
+  .toggle-switch::after {
+    content: '';
+    position: absolute;
+    width: 14px; height: 14px;
+    background: white;
+    border-radius: 50%;
+    top: 3px; left: 3px;
+    transition: transform 0.2s;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.2);
+  }
+  .toggle-switch.on { background: var(--teal); }
+  .toggle-switch.on::after { transform: translateX(16px); }
+
+  @media (max-width: 1100px) {
+    .app-body { grid-template-columns: 300px 1fr; }
+    .right-panel { display: none; }
+  }
+  @media (max-width: 780px) {
+    .app-body { grid-template-columns: 1fr; }
+    .sidebar { border-right: none; border-bottom: 1px solid var(--border); }
+  }
+
+  /* ─── EXPORT BUTTONS ─────────────────────────────── */
+  .export-bar {
+    display: flex;
+    gap: 10px;
+    margin-top: 0.5rem;
+  }
+  .export-btn {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 18px;
+    border-radius: var(--radius);
+    font-family: var(--sans);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s, border-color 0.15s, transform 0.1s;
+    letter-spacing: 0.02em;
+  }
+  .export-btn:active { transform: scale(0.98); }
+  .export-btn svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .btn-pdf {
+    background: var(--navy);
+    color: white;
+    border: 1px solid var(--navy);
+  }
+  .btn-pdf:hover { background: var(--navy-lite); border-color: var(--navy-lite); }
+  .btn-print {
+    background: transparent;
+    color: var(--navy);
+    border: 1px solid var(--border);
+  }
+  .btn-print:hover { background: var(--surface); border-color: var(--navy); }
+
+  @media print {
+    @page { size: A4; margin: 18mm 16mm; }
+    body { background: white !important; font-size: 11pt; }
+    .app-header { position: static; background: white !important; border-bottom: 2px solid #0B1F3A; }
+    .logo { color: #0B1F3A !important; }
+    .logo-icon { background: #D4952A !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .header-badge { background: #F7F9FC !important; color: #0B1F3A !important; border: 1px solid #D8E2EF; }
+    .app-body { display: block; }
+    .sidebar { display: none; }
+    .right-panel { display: none; }
+    .export-bar { display: none; }
+    .empty-state { display: none; }
+    .main { padding: 0; overflow: visible; gap: 1rem; }
+    .page-title { font-size: 16pt; color: #0B1F3A !important; }
+    .page-sub { font-size: 9pt; }
+    .total-box { background: #0B1F3A !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; border-radius: 8px; page-break-inside: avoid; }
+    .total-label { color: rgba(255,255,255,0.65) !important; }
+    .total-amount { font-size: 22pt !important; color: white !important; }
+    .total-currency { color: #F5C05A !important; }
+    .breakdown-card { box-shadow: none !important; border: 1px solid #D8E2EF; page-break-inside: avoid; }
+    .breakdown-header { background: #0B1F3A !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .breakdown-header h3 { color: white !important; }
+    .step-badge { background: #D4952A !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .step-table tr.subtotal td { background: #F0F5FF !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .step-table .step-num.positive { color: #0E7B6C !important; }
+    .step-table .step-num.negative { color: #C0392B !important; }
+    .step-table .zero-row { display: none; }
+    .step-num-badge { background: #0B1F3A !important; color: #F5C05A !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .print-footer { display: block !important; margin-top: 1.5rem; padding-top: 0.75rem; border-top: 1px solid #D8E2EF; font-size: 8pt; color: #9BAEC4; text-align: center; }
+  }
+  .print-footer { display: none; }
+
+</style>
+</head>
+<body>
+
+<header class="app-header">
+  <div class="logo">
+    <div class="logo-icon">
+      <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
+    </div>
+    Vehicle Premium Calculator
+  </div>
+  <div style="display:flex;align-items:center;gap:10px;">
+    <span class="header-badge">CUR · Curaçao</span>
+    <span style="color:var(--gold-lite);font-size:12px;font-family:var(--mono);">ANG / XCG</span>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- ═══ LEFT SIDEBAR ═══ -->
+  <aside class="sidebar">
+
+    <div>
+      <div class="section-title">Policy</div>
+      <div class="field-group">
+        <div class="field-row">
+          <div class="field">
+            <label>Coverage</label>
+            <select id="coverage" onchange="updateNcdOptions()">
+              <option value="C">Comprehensive (C)</option>
+              <option value="SC">Super Cover (SC)</option>
+              <option value="TPC">TP Limited Comp (TPC)</option>
+              <option value="TP">Third Party (TP)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Period</label>
+            <select id="period" onchange="toggleShortPeriodField()">
+              <option value="1Y">12 months – Annual (1Y)</option>
+              <option value="6M">6 months (6M)</option>
+              <option value="1Q">3 months – Quarterly (1Q)</option>
+              <option value="3M50">3 months – 50% (3M50)</option>
+              <option value="9M50">9 months – 50% (9M50)</option>
+              <option value="SHORT">Short Period...</option>
+            </select>
+          </div>
+        </div>
+        <div class="field hidden" id="shortPeriodField">
+          <label>Short Period Duration</label>
+          <select id="shortPeriodSelect">
+            <option value="10">Up to 7 Days (10%)</option>
+            <option value="15">Up to 1 Month (15%)</option>
+            <option value="25">Up to 2 Months (25%)</option>
+            <option value="30">Up to 3 Months (30%)</option>
+            <option value="40">Up to 4 Months (40%)</option>
+            <option value="50">Up to 5 Months (50%)</option>
+            <option value="55">Up to 6 Months (55%)</option>
+            <option value="65">Up to 7 Months (65%)</option>
+            <option value="75">Up to 8 Months (75%)</option>
+            <option value="100">More than 8 Months (100%)</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-title">Vehicle</div>
+      <div class="field-group">
+        <div class="field">
+          <label>Insured Value (XCG)</label>
+          <input type="number" id="vehValue" value="9841.50" step="0.01" min="0">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Vehicle Use</label>
+            <select id="vehUse">
+              <option value="PR" selected>Private (PR)</option>
+              <option value="CM">Commercial (CM)</option>
+              <option value="RN">Rental (RN)</option>
+              <option value="MB">Motor Bike (MB)</option>
+              <option value="HD">Heavy Duty (HD)</option>
+              <option value="BS">Bus (BS)</option>
+              <option value="TX">Taxi (TX)</option>
+              <option value="HB">Harley Davidson (HB)</option>
+              <option value="HBC">Harley Davidson Clubs (HBC)</option>
+              <option value="CC">Classic Cars (CC)</option>
+              <option value="TB">Tour Bus (TB)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Vehicle Type</label>
+            <select id="vehType">
+              <option value="Car">Car</option>
+              <option value="Van" selected>Van</option>
+              <option value="Jeep">Jeep</option>
+              <option value="Pickup">Pickup</option>
+              <option value="Truck">Truck</option>
+              <option value="Bus">Bus</option>
+              <option value="MotorCycles">Motorcycle</option>
+              <option value="Harley Davidson">Harley Davidson</option>
+              <option value="Backhoe">Backhoe</option>
+              <option value="Crane">Crane</option>
+              <option value="Tractor">Tractor</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Year of Manuf.</label>
+            <input type="number" id="vehYear" value="2018" min="1960" max="2025">
+          </div>
+          <div class="field">
+            <label>Engine Size</label>
+            <select id="engSize">
+              <option value="1599" selected>Up to 1600cc</option>
+              <option value="1601">Over 1600cc</option>
+              <option value="51">MC &gt; 50cc</option>
+              <option value="49">MC &lt; 50cc</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-title">Insured Driver</div>
+      <div class="field-group">
+        <div class="field-row">
+          <div class="field">
+            <label>Sex</label>
+            <select id="sex">
+              <option value="M">Male</option>
+              <option value="F">Female</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Age Category</label>
+            <select id="ageCat">
+              <option value="31" selected>Over 30</option>
+              <option value="26">25 – 30</option>
+              <option value="0">Under 25</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>Driving Experience</label>
+          <select id="driverExp">
+            <option value="3" selected>More than 2 years</option>
+            <option value="0">Less than 2 years</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-title">Premium Modifiers</div>
+      <div class="field-group">
+        <div class="field-row">
+          <div class="field">
+            <label>NCD %</label>
+            <select id="ncd">
+              <option value="0" selected>0%</option>
+              <option value="10">10%</option>
+              <option value="20">20%</option>
+              <option value="30">30%</option>
+              <option value="40">40%</option>
+              <option value="50">50%</option>
+              <option value="60">60%</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Rate Up %</label>
+            <input type="number" id="rateUp" value="0" min="0" max="100" step="1">
+          </div>
+        </div>
+        <div class="field">
+          <label>Management Disc %</label>
+          <input type="number" id="managDisc" value="0" min="0" max="100" step="1">
+        </div>
+        <div class="field">
+          <label>Pass. Liability Seats</label>
+          <input type="number" id="passLiab" value="3" min="0" max="99">
+        </div>
+        <div class="field">
+          <label>Extra Coverage (XCG)</label>
+          <input type="number" id="extraCov" value="86.11" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label>Liability Tier</label>
+          <select id="liability">
+              <option value="0">XCG 90,000 (standard)</option>
+              <option value="0.10">XCG 150,000 (+10%)</option>
+              <option value="0.22">XCG 200,000 (+22%)</option>
+              <option value="0.30">XCG 250,000 (+30%)</option>
+              <option value="0.50">XCG 300,000 (+50%)</option>
+              <option value="0.60">XCG 500,000 (+60%)</option>
+              <option value="0.80">XCG 1,000,000 (+80%)</option>
+            </select>
+        </div>
+        <div class="field">
+          <label>Campaigns / Coupon (XCG)</label>
+          <input type="number" id="campaigns" value="0" min="0" step="0.01">
+        </div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-title">Options</div>
+      <div class="check-group" id="checkboxes">
+        <label class="check-item" id="lbl-aald">
+          <input type="checkbox" id="aald" checked>
+          <span>AALD</span>
+        </label>
+        <label class="check-item" id="lbl-forLic">
+          <input type="checkbox" id="forLic">
+          <span>Foreign Lic.</span>
+        </label>
+        <label class="check-item" id="lbl-fleet">
+          <input type="checkbox" id="fleet">
+          <span>Fleet Disc. (10%)</span>
+        </label>
+        <label class="check-item" id="lbl-staff">
+          <input type="checkbox" id="staff">
+          <span>Staff Disc. (20%)</span>
+        </label>
+        <label class="check-item" id="lbl-newVeh">
+          <input type="checkbox" id="newVeh">
+          <span>New Vehicle</span>
+        </label>
+        <label class="check-item" id="lbl-rental">
+          <input type="checkbox" id="rental">
+          <span>Rental</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-title">Override</div>
+      <div class="toggle-field" onclick="toggleOverride()">
+        <label>Don't Override Basic Premium</label>
+        <div class="toggle-switch" id="overrideToggle"></div>
+      </div>
+      <div id="overrideField" class="field hidden" style="margin-top:8px;">
+        <label>Manual Basic Premium (XCG)</label>
+        <input type="number" id="manualBasic" value="0" step="0.01">
+      </div>
+    </div>
+
+    <button class="calc-btn" onclick="calculate()">
+      <div class="btn-shine"></div>
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="9" y1="9" x2="15" y2="9"/><line x1="9" y1="13" x2="15" y2="13"/><line x1="9" y1="17" x2="13" y2="17"/></svg>
+      Calculate Premium
+    </button>
+
+  </aside>
+
+  <!-- ═══ MAIN CENTER ═══ -->
+  <main class="main">
+
+    <div>
+      <h1 class="page-title">NAGICO Premium Calculation</h1>
+      <p class="page-sub">Territory: Curaçao (CUR) &nbsp;·&nbsp; Currency: ANG (XCG) &nbsp;·&nbsp; GetPremRateABC + CalcNoOverride</p>
+    </div>
+
+    <!-- Empty state -->
+    <div class="empty-state" id="emptyState">
+      <div class="empty-icon">
+        <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round" opacity="0.35"><rect x="3" y="3" width="18" height="18" rx="3"/><path d="M9 9h6M9 12h6M9 15h4"/></svg>
+      </div>
+      <p>Fill in the fields on the left and press <strong>Calculate Premium</strong> to see a full step-by-step breakdown.</p>
+    </div>
+
+    <!-- Results (hidden until calc) -->
+    <div id="results" class="hidden">
+
+
+      <div class="total-box" id="totalBox">
+        <div>
+          <div class="total-label">Total Premium</div>
+          <div class="total-amount" id="dispTotal">—</div>
+          <div class="total-currency">Netherlands Antillean Guilder (XCG) · Curaçao</div>
+        </div>
+        <div id="minPremBadge" class="hidden total-min-badge">Min. Premium Applied</div>
+      </div>
+
+      <div class="breakdown-card">
+        <div class="breakdown-header">
+          <h3>Calculation Breakdown</h3>
+          <span class="step-badge" id="stepCount">— steps</span>
+        </div>
+        <table class="step-table" id="stepTable"></table>
+      </div>
+
+      <!-- Export / Print buttons -->
+      <div class="export-bar" id="exportBar" style="display:none;">
+        <button class="export-btn btn-pdf" onclick="exportPDF()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10 9 9 9 8 9"/></svg>
+          Export PDF
+        </button>
+        <button class="export-btn btn-print" onclick="window.print()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+          Print
+        </button>
+      </div>
+
+    </div>
+
+
+    <div class="print-footer" id="printFooter">
+      NAGICO Vehicle Premium Calculator &nbsp;·&nbsp; Curaçao (CUR) &nbsp;·&nbsp; Generated: <span id="printDate"></span>
+    </div>
+
+  </main>
+
+  <!-- ═══ RIGHT PANEL ═══ -->
+  <aside class="right-panel">
+    <div class="section-title">Summary</div>
+
+    <div class="metric-card">
+      <div class="metric-label">Basic Premium</div>
+      <div class="metric-value" id="rpBasic">—</div>
+      <div class="metric-sub">Before discounts</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">NCD Amount</div>
+      <div class="metric-value" id="rpNCD">—</div>
+      <div class="metric-sub" id="rpNCDSub">No claim discount</div>
+    </div>
+    <div class="metric-card">
+      <div class="metric-label">Net Premium</div>
+      <div class="metric-value" id="rpNet">—</div>
+      <div class="metric-sub">Before fees</div>
+    </div>
+    <div class="metric-card" style="background:var(--navy);border-color:var(--navy);">
+      <div class="metric-label" style="color:rgba(255,255,255,0.5)">Total Premium</div>
+      <div class="metric-value" style="color:var(--gold-lite)" id="rpTotal">—</div>
+      <div class="metric-sub" style="color:rgba(255,255,255,0.45)">Including all fees</div>
+    </div>
+
+    <div class="divider"></div>
+    <div class="section-title">Notices</div>
+    <div class="info-box info" id="noticeBox">
+      <strong>CUR Tax Info</strong>
+      No government tax or VAT applies to vehicle premiums in Curaçao (GovTax = 0, GovVAT = 0).
+    </div>
+
+    <div id="aaldNotice" class="info-box warn hidden">
+      <strong>AALD Auto-applied</strong>
+      Commercial vehicle use automatically triggers the Any Authorised Licensed Driver surcharge.
+    </div>
+    <div id="minPremNotice" class="info-box warn hidden">
+      <strong>Minimum Premium</strong>
+      Calculated premium was below the minimum floor and has been adjusted.
+    </div>
+    <div id="fleetCapNotice" class="info-box error hidden">
+      <strong>Fleet Discount Suppressed</strong>
+      Combined NCD + Fleet % exceeds maximum NCD cap for this coverage. Fleet discount was removed.
+    </div>
+
+  </aside>
+
+</div>
+
+<script>
+// ─── RATE TABLES — CUR database export (all tables) ─────────────────────────
+const RATES = {
+
+  // AbcTprate (CUR) — FRSUMINS/TOSUMINS → Premium (XCG)
+  abcTpRate: [
+    { from:      1, to:  25000, premium:  480 },
+    { from:  25001, to:  30000, premium:  552 },
+    { from:  30001, to:  35000, premium:  613 },
+    { from:  35001, to:  40000, premium:  664 },
+    { from:  40001, to:  45000, premium:  704 },
+    { from:  45001, to:  50000, premium:  787 },
+    { from:  50001, to:  55000, premium:  869 },
+    { from:  55001, to:  60000, premium:  952 },
+    { from:  60001, to:  65000, premium: 1034 },
+    { from:  65001, to:  70000, premium: 1117 },
+    { from:  70001, to:  75000, premium: 1199 },
+    { from:  75001, to:  80000, premium: 1282 },
+    { from:  80001, to:  85000, premium: 1364 },
+    { from:  85001, to:  90000, premium: 1447 },
+    { from:  90001, to:  95000, premium: 1529 },
+    { from:  95001, to: 100000, premium: 1612 },
+    { from: 100001, to: 105000, premium: 1694 },
+    { from: 105001, to: 110000, premium: 1777 },
+    { from: 110001, to: 115000, premium: 1859 },
+    { from: 115001, to: 120000, premium: 1942 },
+    { from: 120001, to:1000000, premium: 2024 },
+  ],
+
+  // Coverage (CUR) — Loadperc for Comp, Maxncd, ReplacementValue for SC
+  coverage: {
+    C:   { loadperc: 0.08, maxncd: 80, replacementvalue: 0.00, name: 'Comprehensive' },
+    SC:  { loadperc: 0.08, maxncd: 80, replacementvalue: 0.05, name: 'Super Cover' },
+    TPC: { loadperc: 0.03, maxncd: 60, replacementvalue: 0.00, name: 'TP Limited Comp' },
+    TP:  { loadperc: 0,    maxncd: 60, replacementvalue: 0.00, name: 'Third Party' },
+  },
+
+  // NVehUse (CUR) — VuseID, description, loadperc surcharge, maxncd
+  nVehUse: {
+    PR:  { label: 'Private',               loadperc: 0,    maxncd: 70 },
+    CM:  { label: 'Commercial',            loadperc: 0.20, maxncd: 60 },
+    RN:  { label: 'Rental',                loadperc: 0,    maxncd: 60 },
+    MB:  { label: 'Motor Bike',            loadperc: 0,    maxncd: 0  },
+    HD:  { label: 'Heavy Duty',            loadperc: 0.35, maxncd: 60 },
+    BS:  { label: 'Bus',                   loadperc: 0.20, maxncd: 60 },
+    TX:  { label: 'Taxi',                  loadperc: 0.20, maxncd: 60 },
+    HB:  { label: 'Harley Davidson',       loadperc: 0,    maxncd: 0  },
+    HBC: { label: 'Harley Davidson Clubs', loadperc: 0,    maxncd: 0  },
+    CC:  { label: 'Classic Cars',          loadperc: 0,    maxncd: 0  },
+    TB:  { label: 'Tour Bus',              loadperc: 0.20, maxncd: 60 },
+  },
+
+  // PremVar (CUR) — keyed by VehicleUse_Coverage
+  // All % values as stored (e.g. 10 = 10%). HalfYearlyPerc=50, QuarterlyPerc=25 throughout.
+  premVarTable: {
+    PR_C:   { aald:20, licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    PR_TP:  { aald:20, licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    PR_TPC: { aald:20, licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    PR_SC:  { aald:20, licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    CM_C:   { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    CM_TP:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    CM_TPC: { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    CM_SC:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    BS_C:   { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:20,    quarterly:25, halfyearly:50 },
+    BS_TP:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:20,    quarterly:25, halfyearly:50 },
+    BS_TPC: { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:20,    quarterly:25, halfyearly:50 },
+    BS_SC:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:20,    quarterly:25, halfyearly:50 },
+    TX_C:   { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:20,    quarterly:25, halfyearly:50 },
+    TX_TP:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:20,    quarterly:25, halfyearly:50 },
+    TX_TPC: { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:20,    quarterly:25, halfyearly:50 },
+    TX_SC:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:20,    quarterly:25, halfyearly:50 },
+    HD_C:   { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:15,    quarterly:25, halfyearly:50 },
+    HD_TP:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:15,    quarterly:25, halfyearly:50 },
+    HD_TPC: { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:15,    quarterly:25, halfyearly:50 },
+    HD_SC:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:15,    quarterly:25, halfyearly:50 },
+    RN_C:   { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    RN_TP:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    RN_TPC: { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    RN_SC:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    HB_C:   { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:0,     quarterly:25, halfyearly:50 },
+    HB_TP:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:0,     quarterly:25, halfyearly:50 },
+    TB_C:   { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:30,    quarterly:25, halfyearly:50 },
+    TB_TP:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:30,    quarterly:25, halfyearly:50 },
+    TB_SC:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:30,    quarterly:25, halfyearly:50 },
+    MB_C:   { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+    MB_TP:  { aald:0,  licexp:33.3, forlicense:10, fleetdisc:10, staffdisc:35, passliab:8.75,  quarterly:25, halfyearly:50 },
+  },
+
+  // LiabilityVar (CUR) — AddTPL = BasicPremium × value
+  liabilityVar: [
+    { label: 'XCG 90,000 (included)',   value: 0    },
+    { label: 'XCG 150,000 (+10%)',       value: 0.10 },
+    { label: 'XCG 200,000 (+22%)',       value: 0.22 },
+    { label: 'XCG 250,000 (+30%)',       value: 0.30 },
+    { label: 'XCG 300,000 (+50%)',       value: 0.50 },
+    { label: 'XCG 500,000 (+60%)',       value: 0.60 },
+    { label: 'XCG 1,000,000 (+80%)',     value: 0.80 },
+  ],
+
+  // NCD scale (CUR) — valid NCD steps per coverage
+  ncdScale: {
+    C:   [-50,-25,0,10,20,30,40,50,60,65,70,75,80],
+    SC:  [-50,-25,0,10,20,30,40,50,60,65,70,75,80],
+    TP:  [-50,-25,0,10,20,30,40,50,60],
+    TPC: [-50,-25,0,10,20,30,40,50,60],
+  },
+
+  // VehicleTypes (CUR) — age-based rate-up
+  vehicleTypes: [
+    { type: 'Car',             rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'Jeep',            rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'Truck',           rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'MotorCycles',     rateUpYear: 0, rateUpPerc: 20 },
+    { type: 'Bus',             rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'Harley Davidson', rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'Pickup',          rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'Van',             rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'Backhoe',         rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'Crane',           rateUpYear: 8, rateUpPerc: 20 },
+    { type: 'Tractor',         rateUpYear: 8, rateUpPerc: 20 },
+  ],
+
+  // MinimumPremium (CUR) — single floor of XCG 50 annual
+  minPremium: 50,
+
+  // ShortPeriod options
+  shortPeriods: [
+    { label: 'Up to 7 Days',       value: 10  },
+    { label: 'Up to 1 Month',      value: 15  },
+    { label: 'Up to 2 Months',     value: 25  },
+    { label: 'Up to 3 Months',     value: 30  },
+    { label: 'Up to 4 Months',     value: 40  },
+    { label: 'Up to 5 Months',     value: 50  },
+    { label: 'Up to 6 Months',     value: 55  },
+    { label: 'Up to 7 Months',     value: 65  },
+    { label: 'Up to 8 Months',     value: 75  },
+    { label: 'More than 8 Months', value: 100 },
+  ],
+
+  // Sys (CUR)
+  sys: { policyfee: 55.32, newvehdisc: 0, govTax: 0.07, govVAT: 0, nrsa: 0 },  // Tax=0.07 from Sys table; PremVAT=0
+};
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function getAbcTpPremium(vehicleValue) {
+  // Matches C# SQL: WHERE TOSUMINS >= vehicleValue ORDER BY TOSUMINS ASC → first row
+  for (const b of RATES.abcTpRate) {
+    if (b.to >= vehicleValue) return b.premium;
+  }
+  return RATES.abcTpRate[RATES.abcTpRate.length - 1].premium;
+}
+
+function getPremVar(vehUse, coverage) {
+  return RATES.premVarTable[vehUse+'_'+coverage]
+      || RATES.premVarTable[vehUse+'_C']
+      || RATES.premVarTable['PR_C'];
+}
+
+function getVehicleAgeRateUp(vehType, vehYear) {
+  const vt = RATES.vehicleTypes.find(v => v.type === vehType);
+  if (!vt || vt.rateUpYear === 0) return 0;
+  const age = new Date().getFullYear() - vehYear;
+  return age >= vt.rateUpYear ? vt.rateUpPerc : 0;
+}
+
+function round2(n) { return Math.round(n * 100) / 100; }
+function fmt(n)    { const num = parseFloat(n); return isNaN(num) ? '0.00' : num.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
+function pct(p, v) { return round2(v * p / 100); }
+
+let noOverride = false;
+function toggleOverride() {
+  noOverride = !noOverride;
+  document.getElementById('overrideToggle').classList.toggle('on', noOverride);
+  document.getElementById('overrideField').classList.toggle('hidden', !noOverride);
+}
+
+// Keep checkboxes styled
+document.querySelectorAll('.check-item input').forEach(cb => {
+  cb.addEventListener('change', function() {
+    this.closest('.check-item').classList.toggle('active', this.checked);
+  });
+  cb.closest('.check-item').classList.toggle('active', cb.checked);
+});
+
+
+
+function calculate() {
+  const steps = [];
+  let notices = { aald: false, minPrem: false, fleetCap: false };
+
+  // ── INPUTS ──
+  const coverage    = document.getElementById('coverage').value;
+  const periodCode  = document.getElementById('period').value;
+  const isShort     = periodCode === 'SHORT';
+  const shortPerc   = isShort ? parseFloat(document.getElementById('shortPeriodSelect').value) : 0;
+  const vehValue    = parseFloat(document.getElementById('vehValue').value) || 0;
+  const vehUse      = document.getElementById('vehUse').value;
+  const vehType     = document.getElementById('vehType').value;
+  const vehYear     = parseInt(document.getElementById('vehYear').value) || 2015;
+  const sex         = document.getElementById('sex').value;
+  const ageCat      = parseInt(document.getElementById('ageCat').value);
+  const driverExp   = parseInt(document.getElementById('driverExp').value);
+  const ncdPct      = parseFloat(document.getElementById('ncd').value) || 0;
+  const rateUpPct   = parseFloat(document.getElementById('rateUp').value) || 0;
+  const managDiscPct= parseFloat(document.getElementById('managDisc').value) || 0;
+  const passSeats   = parseInt(document.getElementById('passLiab').value) || 0;
+  const extraCov    = parseFloat(document.getElementById('extraCov').value) || 0;
+  const liability   = document.getElementById('liability').value;
+  const campaigns   = parseFloat(document.getElementById('campaigns').value) || 0;
+  const aald        = document.getElementById('aald').checked;
+  const forLic      = document.getElementById('forLic').checked;
+  const fleet       = document.getElementById('fleet').checked;
+  const staff       = document.getElementById('staff').checked;
+  const newVeh      = document.getElementById('newVeh').checked;
+  const rental      = document.getElementById('rental').checked;
+  const pv = getPremVar(vehUse, coverage);
+  const covData = RATES.coverage[coverage] || RATES.coverage["C"];
+  const sys         = RATES.sys;
+
+  // ── STEP 1: BASIC PREMIUM ──
+  let basicPremium = 0;
+  let addTPL = 0;
+  let rateUpAmt = 0;
+
+  if (noOverride) {
+    basicPremium = parseFloat(document.getElementById('manualBasic').value) || 0;
+    steps.push({ label: 'Basic Premium (manual override)', amount: basicPremium, running: basicPremium, type: 'neutral' });
+  } else {
+    if (coverage === 'TP' || coverage === 'LAR') {
+      basicPremium = getAbcTpPremium(vehValue);
+      const tpBand = RATES.abcTpRate.find(b => b.to >= vehValue) || RATES.abcTpRate[RATES.abcTpRate.length-1];
+      steps.push({ label: `Basic Premium – TP table (TOSUMINS ≥ ${fmt(vehValue)} → band TOSUMINS ${fmt(tpBand.to)} → XCG ${fmt(tpBand.premium)})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+      const nvu = RATES.nVehUse[vehUse];
+      const nvuLoad = nvu ? nvu.loadperc : 0;
+      if (nvuLoad > 0) {
+        const nvuAmt = round2(basicPremium * nvuLoad);
+        basicPremium = round2(basicPremium + nvuAmt);
+        steps.push({ label: `  + Vehicle use surcharge (${nvu.label}: ${nvuLoad*100}%)`, amount: nvuAmt, running: basicPremium, type: 'positive' });
+      }
+    } else {
+      const loadperc = covData.loadperc || 0;
+      basicPremium = round2(vehValue * loadperc);
+      steps.push({ label: `Basic Premium – ${covData.name} (XCG ${fmt(vehValue)} × ${(loadperc*100).toFixed(0)}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+      const nvu = RATES.nVehUse[vehUse];
+      const nvuLoad = nvu ? nvu.loadperc : 0;
+      if (nvuLoad > 0) {
+        const nvuAmt = round2(basicPremium * nvuLoad);
+        basicPremium = round2(basicPremium + nvuAmt);
+        steps.push({ label: `  + Vehicle use surcharge (${nvu.label}: ${nvuLoad*100}%)`, amount: nvuAmt, running: basicPremium, type: 'positive' });
+      }
+      if (coverage === 'SC') {
+        const scAmt = round2(basicPremium * covData.replacementvalue);
+        basicPremium = round2(basicPremium + scAmt);
+        steps.push({ label: `  + Super Cover surcharge (${(covData.replacementvalue*100).toFixed(0)}%)`, amount: scAmt, running: basicPremium, type: 'positive' });
+      }
+    }
+
+    // Rate increase from CompRateUpdates (assumed 0 here — flag for dev)
+    steps.push({ label: 'Rate increase (CompRateUpdates) — query DB live', amount: 0, running: basicPremium, type: 'neutral', zero: true });
+
+    // Liability AddTPL
+    const liabFactor = parseFloat(liability) || 0;
+    if (liabFactor > 0) {
+      addTPL = round2(basicPremium * liabFactor);
+      const liabEntry = RATES.liabilityVar.find(l => l.value === liabFactor) || {label: `+${liabFactor*100}%`};
+      steps.push({ label: `Add. TP Liability – ${liabEntry.label}`, amount: addTPL, running: round2(basicPremium + addTPL), type: 'positive' });
+    } else {
+      steps.push({ label: 'Add. TP Liability (standard – included in base)', amount: 0, running: basicPremium, type: 'neutral', zero: true });
+    }
+  }
+
+  // ── STEP 2: RATE UP & VEHICLE AGE ──
+  if (rateUpPct > 0) {
+    rateUpAmt = round2(basicPremium * rateUpPct / 100);
+    steps.push({ label: `Rate Up (${rateUpPct}%)`, amount: rateUpAmt, running: basicPremium + rateUpAmt, type: 'positive' });
+  } else {
+    steps.push({ label: 'Rate Up (0%)', amount: 0, running: basicPremium, type: 'neutral', zero: true });
+  }
+
+  let tmp = round2(basicPremium + rateUpAmt + addTPL);
+  steps.push({ label: 'Sub-total (BasicPremium + RateUp + AddTPL)', amount: null, running: tmp, type: 'subtotal', sublabel: true });
+
+  // ── STEP 3: LOADINGS ──
+  if (!rental) {
+    // AALD auto for commercial uses
+    const commercialUses = ['BS','CM','HD','TX','RN','TB'];
+    let effectiveAALD = aald || commercialUses.includes(vehUse);
+    if (commercialUses.includes(vehUse) && !aald) notices.aald = true;
+
+    if (effectiveAALD && driverExp >= 3) {
+      const aaldAmt = round2(tmp * pv.aald / 100);
+      steps.push({ label: `AALD surcharge (${pv.aald}%) – any authorised licensed driver`, amount: aaldAmt, running: round2(tmp + aaldAmt), type: 'positive' });
+      tmp = round2(tmp + aaldAmt);
+    } else if (driverExp < 2) {
+      const licAmt = round2(tmp * pv.licexp / 100);
+      steps.push({ label: `Inexperienced driver surcharge (${pv.licexp}%)`, amount: licAmt, running: round2(tmp + licAmt), type: 'positive' });
+      tmp = round2(tmp + licAmt);
+    } else {
+      steps.push({ label: 'AALD / Inexp. Driver (not applicable)', amount: 0, running: tmp, type: 'neutral', zero: true });
+    }
+
+    if (forLic) {
+      const flAmt = round2(tmp * pv.forlicense / 100);
+      steps.push({ label: `Foreign License surcharge (${pv.forlicense}%)`, amount: flAmt, running: round2(tmp + flAmt), type: 'positive' });
+      tmp = round2(tmp + flAmt);
+    } else {
+      steps.push({ label: 'Foreign License (not applicable)', amount: 0, running: tmp, type: 'neutral', zero: true });
+    }
+  }
+
+  // ── STEP 4: DISCOUNTS ──
+  const maxNcd = covData.maxncd || 60;
+  let fleetAmt = 0;
+  if (fleet) {
+    const combined = ncdPct + pv.fleetdisc;
+    if (combined > maxNcd) {
+      steps.push({ label: `Fleet Discount SUPPRESSED (NCD ${ncdPct}% + Fleet ${pv.fleetdisc}% = ${combined}% > max ${maxNcd}%)`, amount: 0, running: tmp, type: 'neutral', zero: true });
+      notices.fleetCap = true;
+    } else {
+      fleetAmt = round2(tmp * pv.fleetdisc / 100);
+      steps.push({ label: `Fleet Discount (${pv.fleetdisc}%)`, amount: -fleetAmt, running: round2(tmp - fleetAmt), type: 'negative' });
+      tmp = round2(tmp - fleetAmt);
+    }
+  }
+
+  if (staff) {
+    const staffAmt = round2(tmp * pv.staffdisc / 100);
+    steps.push({ label: `Staff Discount (${pv.staffdisc}%)`, amount: -staffAmt, running: round2(tmp - staffAmt), type: 'negative' });
+    tmp = round2(tmp - staffAmt);
+  }
+
+  if (managDiscPct > 0) {
+    const managAmt = round2(tmp * managDiscPct / 100);
+    steps.push({ label: `Management Discount (${managDiscPct}%)`, amount: -managAmt, running: round2(tmp - managAmt), type: 'negative' });
+    tmp = round2(tmp - managAmt);
+  }
+
+  const yearPremium = tmp;
+  steps.push({ label: 'Year Premium', amount: null, running: yearPremium, type: 'subtotal', sublabel: true });
+
+  // ── STEP 5: PERIOD ADJUSTMENT ──
+  let grossPremium = yearPremium;
+  let periodLabel = 'Annual (1Y) – no adjustment';
+  if (isShort) {
+    grossPremium = round2(yearPremium * shortPerc / 100);
+    const spSel = document.getElementById('shortPeriodSelect'); periodLabel = `Short period – ${spSel.options[spSel.selectedIndex].text} (${shortPerc}%)`;
+  } else if (periodCode === '6M') {
+    grossPremium = round2(yearPremium * pv.halfyearly / 100);
+    periodLabel = `6-Month rate (${pv.halfyearly}% of annual)`;
+  } else if (periodCode === '1Q') {
+    grossPremium = round2(yearPremium * pv.quarterly / 100);
+    periodLabel = `Quarterly rate (${pv.quarterly}% of annual)`;
+  } else if (periodCode === '3M50' || periodCode === '9M50') {
+    grossPremium = round2(yearPremium / 2);
+    periodLabel = `${periodCode} rate (50% of annual)`;
+  }
+  if (periodCode !== '1Y' || isShort) {
+    steps.push({ label: `Period: ${periodLabel}`, amount: null, running: grossPremium, type: 'subtotal' });
+  }
+
+  // New vehicle discount (applied on GrossPremium)
+  let nvdValue = 0;
+  if (newVeh) {
+    const nvdPerc = round2(100 - sys.newvehdisc * 100);
+    const effectiveNvd = Math.min(nvdPerc, maxNcd - ncdPct);
+    if (effectiveNvd > 0) {
+      nvdValue = round2(grossPremium - round2(grossPremium * sys.newvehdisc));
+      steps.push({ label: `New Vehicle Discount (${effectiveNvd}%)`, amount: -nvdValue, running: round2(grossPremium - nvdValue), type: 'negative' });
+    }
+  }
+
+  // ── STEP 6: NCD ──
+  let ncdAmt = 0;
+  if (ncdPct > 0) {
+    ncdAmt = round2(grossPremium * ncdPct / 100);
+    steps.push({ label: `No Claim Discount (NCD ${ncdPct}%)`, amount: -ncdAmt, running: round2(grossPremium - ncdAmt), type: 'negative' });
+  } else {
+    steps.push({ label: 'No Claim Discount (0%)', amount: 0, running: grossPremium, type: 'neutral', zero: true });
+  }
+  const discountPremium = round2(grossPremium - ncdAmt);
+  steps.push({ label: 'Discount Premium', amount: null, running: discountPremium, type: 'subtotal', sublabel: true });
+
+  // ── STEP 7: PASSENGERS & EXTRAS ──
+  let passLiabAmt = 0;
+  if (passSeats > 0) {
+    passLiabAmt = round2(passSeats * pv.passliab);
+    if (periodCode === '6M' || periodCode === '3M50' || periodCode === '9M50') passLiabAmt = round2(passLiabAmt / 2);
+    if (periodCode === '1Q') passLiabAmt = round2(passLiabAmt * pv.quarterly / 100);
+    steps.push({ label: `Passenger Liability (${passSeats} seats × XCG ${pv.passliab.toFixed(2)})`, amount: passLiabAmt, running: null, type: 'positive' });
+  }
+
+  const campaignAmt = round2(-Math.abs(campaigns));
+  if (campaigns > 0) {
+    steps.push({ label: 'Campaign / Coupon', amount: campaignAmt, running: null, type: 'negative' });
+  }
+
+  if (extraCov > 0) {
+    steps.push({ label: 'Extra Coverage', amount: extraCov, running: null, type: 'positive' });
+  }
+
+  // ── STEP 8: NET PREMIUM ──
+  let netPremium = round2(discountPremium - nvdValue + passLiabAmt + extraCov + campaignAmt);
+
+  // Minimum premium check
+  let minPremApplied = false;
+  const minPrem = RATES.minPremium || 50;
+  let minPremThreshold = minPrem;
+  if (isShort) minPremThreshold = round2(minPrem * shortPerc / 100);
+  else if (periodCode === '6M' || periodCode === '3M50' || periodCode === '9M50') minPremThreshold = round2(minPrem / 2);
+  else if (periodCode === '1Q') minPremThreshold = round2(minPrem / 4);
+  if (netPremium < minPremThreshold && minPremThreshold > 0) {
+    netPremium = minPremThreshold;
+    minPremApplied = true;
+    notices.minPrem = true;
+    steps.push({ label: `Minimum premium floor applied (XCG ${fmt(minPremThreshold)})`, amount: null, running: netPremium, type: 'subtotal' });
+  }
+
+  steps.push({ label: 'Net Premium', amount: null, running: netPremium, type: 'subtotal', sublabel: true });
+
+  // ── STEP 9: FEES ──
+  steps.push({ label: `Policy Fee (CUR Sys table)`, amount: sys.policyfee, running: null, type: 'positive' });
+  const govTaxAmt = round2((netPremium + sys.policyfee) * sys.govTax);
+  const govVATAmt = round2((netPremium + sys.policyfee + govTaxAmt) * sys.govVAT);
+  if (govTaxAmt > 0) {
+    steps.push({ label: `Government Tax (${(sys.govTax*100).toFixed(0)}% of NetPremium + PolicyFee)`, amount: govTaxAmt, running: null, type: 'positive' });
+  } else {
+    steps.push({ label: 'Government Tax (0%)', amount: 0, running: null, type: 'neutral', zero: true });
+  }
+  if (govVATAmt > 0) {
+    steps.push({ label: `VAT (${(sys.govVAT*100).toFixed(0)}% of NetPremium + PolicyFee + Tax)`, amount: govVATAmt, running: null, type: 'positive' });
+  } else {
+    steps.push({ label: 'VAT (CUR = 0%)', amount: 0, running: null, type: 'neutral', zero: true });
+  }
+  steps.push({ label: 'NRSA (CUR = 0)', amount: 0, running: null, type: 'neutral', zero: true });
+
+  // ── TOTAL ──
+  const totalPremium = round2(netPremium + sys.policyfee + govTaxAmt + govVATAmt + sys.nrsa);
+
+  // ── RENDER ──
+  document.getElementById('emptyState').classList.add('hidden');
+  document.getElementById('results').classList.remove('hidden');
+  document.getElementById('exportBar').style.display = 'flex';
+  document.getElementById('dispTotal').textContent = 'XCG ' + fmt(totalPremium);
+  document.getElementById('minPremBadge').classList.toggle('hidden', !minPremApplied);
+
+  // Right panel
+  document.getElementById('rpBasic').textContent  = 'XCG ' + fmt(basicPremium);
+  document.getElementById('rpNCD').textContent    = 'XCG ' + fmt(ncdAmt);
+  document.getElementById('rpNCDSub').textContent = `NCD ${ncdPct}% applied`;
+  document.getElementById('rpNet').textContent    = 'XCG ' + fmt(netPremium);
+  document.getElementById('rpTotal').textContent  = 'XCG ' + fmt(totalPremium);
+
+  // Notices
+  document.getElementById('aaldNotice').classList.toggle('hidden', !notices.aald);
+  document.getElementById('minPremNotice').classList.toggle('hidden', !notices.minPrem);
+  document.getElementById('fleetCapNotice').classList.toggle('hidden', !notices.fleetCap);
+
+  // Step table
+  const tbody = document.getElementById('stepTable');
+  tbody.innerHTML = '';
+  let stepCount = 0;
+  for (const s of steps) {
+    const tr = document.createElement('tr');
+    if (s.type === 'subtotal') tr.classList.add('subtotal');
+    if (s.zero) tr.classList.add('zero-row');
+
+    const tdLabel = document.createElement('td');
+    tdLabel.className = 'step-label';
+
+    if (s.type === 'subtotal' && !s.sublabel) {
+      tdLabel.innerHTML = s.label;
+    } else if (s.amount !== null && s.amount !== undefined && !s.zero) {
+      stepCount++;
+      tdLabel.innerHTML = `<span class="step-num-badge">${stepCount}</span>${s.label}`;
+    } else {
+      tdLabel.textContent = s.label;
+    }
+
+    const tdNum = document.createElement('td');
+    tdNum.className = 'step-num';
+
+    if (s.running !== null && s.running !== undefined && s.type === 'subtotal') {
+      tdNum.textContent = 'XCG ' + fmt(s.running);
+      tdNum.className = 'step-num neutral';
+    } else if (s.amount !== null && s.amount !== undefined) {
+      const sign = s.amount > 0 ? '+' : '';
+      tdNum.textContent = (s.amount === 0 ? '—' : sign + 'XCG ' + fmt(s.amount));
+      tdNum.className = `step-num ${s.type}`;
+    } else if (s.note) {
+      tdNum.textContent = s.note;
+      tdNum.className = 'step-num neutral';
+    }
+
+    tr.appendChild(tdLabel);
+    tr.appendChild(tdNum);
+    tbody.appendChild(tr);
+  }
+
+  // Final total row
+  const trFinal = document.createElement('tr');
+  trFinal.classList.add('subtotal');
+  trFinal.style.borderTop = '2px solid #0B1F3A';
+  trFinal.innerHTML = `<td class="step-label" style="font-size:14px;font-weight:700;color:#0B1F3A">TOTAL PREMIUM</td><td class="step-num" style="font-size:15px;font-weight:700;color:#0B1F3A;font-family:'DM Mono',monospace;">XCG ${fmt(totalPremium)}</td>`;
+  tbody.appendChild(trFinal);
+
+  document.getElementById('stepCount').textContent = stepCount + ' steps';
+  const now = new Date(); document.getElementById('printDate').textContent = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+
+  // Scroll to results on mobile
+  if (window.innerWidth <= 780) {
+    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+  }
+}
+
+
+  function toggleShortPeriodField() {
+    const p = document.getElementById('period').value;
+    document.getElementById('shortPeriodField').classList.toggle('hidden', p !== 'SHORT');
+  }
+
+  function updateNcdOptions() {
+    const cov = document.getElementById('coverage').value;
+    const scale = RATES.ncdScale[cov] || RATES.ncdScale['C'];
+    const sel = document.getElementById('ncd');
+    const cur = parseInt(sel.value);
+    sel.innerHTML = scale.map(v => `<option value="${v}"${v===cur?' selected':''}>${v >= 0 ? v+'%' : v+'% (Malus)'}</option>`).join('');
+    // If current value not in new scale, reset to 0
+    if (!scale.includes(cur)) sel.value = '0';
+  }
+
+  function exportPDF() {
+    const d = new Date();
+    document.getElementById('printDate').textContent = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
+    window.print();
+  }
+
+  // Run on load with default values
+window.addEventListener('load', () => { setTimeout(calculate, 300); });
+</script>
+</body>
+</html>
