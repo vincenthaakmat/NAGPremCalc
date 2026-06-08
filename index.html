@@ -1406,7 +1406,7 @@ function calculate() {
     }
 
     if (forLic) {
-      const flAmt = round2(tmp * pv.forlicense / 100);
+      const flAmt = round2((tmp - addTPL) * pv.forlicense / 100);
       steps.push({ label: `Foreign License surcharge (${pv.forlicense}%)`, amount: flAmt, running: round2(tmp + flAmt), type: 'positive' });
       tmp = round2(tmp + flAmt);
     } else {
