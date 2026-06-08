@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>NAGICO Vehicle Premium Calculator – Curaçao</title>
+<title>NAGICO Vehicle Premium Calculator</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -516,6 +516,181 @@
   }
   .print-footer { display: none; }
 
+
+  /* ─── TERRITORY PICKER ───────────────────────────────── */
+  .territory-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(11,31,58,0.72);
+    z-index: 200;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1.5rem;
+  }
+  .territory-modal {
+    background: var(--card);
+    border-radius: var(--radius-lg);
+    width: 100%;
+    max-width: 720px;
+    max-height: 88vh;
+    overflow-y: auto;
+    box-shadow: var(--shadow-lg);
+  }
+  .territory-modal-header {
+    background: var(--navy);
+    padding: 1.25rem 1.5rem;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .territory-modal-header h2 {
+    color: white;
+    font-size: 14px;
+    font-weight: 600;
+    letter-spacing: 0.04em;
+  }
+  .territory-modal-header .close-btn {
+    background: none;
+    border: none;
+    color: rgba(255,255,255,0.6);
+    font-size: 20px;
+    cursor: pointer;
+    line-height: 1;
+    padding: 2px 6px;
+    border-radius: 4px;
+  }
+  .territory-modal-header .close-btn:hover { color: white; background: rgba(255,255,255,0.1); }
+
+  .territory-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+    gap: 10px;
+    padding: 1.25rem 1.5rem 1.5rem;
+  }
+  .territory-card {
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 0.85rem 1rem;
+    cursor: pointer;
+    transition: border-color 0.15s, background 0.15s, transform 0.1s;
+    position: relative;
+    user-select: none;
+  }
+  .territory-card:hover:not(.territory-soon) {
+    border-color: var(--teal-lite);
+    background: var(--teal-pale);
+    transform: translateY(-1px);
+  }
+  .territory-card:active:not(.territory-soon) { transform: scale(0.98); }
+  .territory-card.territory-active {
+    border-color: var(--navy);
+    background: var(--surface);
+  }
+  .territory-card.territory-active::after {
+    content: '✓';
+    position: absolute;
+    top: 8px; right: 10px;
+    font-size: 11px;
+    color: var(--teal);
+    font-weight: 700;
+  }
+  .territory-card.territory-soon {
+    opacity: 0.45;
+    cursor: not-allowed;
+  }
+  .territory-code {
+    font-family: var(--mono);
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--navy);
+    letter-spacing: 0.06em;
+  }
+  .territory-name {
+    font-size: 11px;
+    color: var(--muted);
+    margin-top: 3px;
+    line-height: 1.4;
+  }
+  .territory-engine {
+    font-size: 9px;
+    font-family: var(--mono);
+    color: var(--faint);
+    margin-top: 5px;
+    letter-spacing: 0.04em;
+  }
+  .territory-soon-badge {
+    display: inline-block;
+    font-size: 9px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--faint);
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    padding: 1px 5px;
+    margin-top: 5px;
+  }
+  .territory-picker-btn {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    background: var(--navy-lite);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    padding: 5px 12px;
+    font-family: var(--sans);
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+    letter-spacing: 0.04em;
+    transition: background 0.15s;
+  }
+  .territory-picker-btn:hover { background: var(--navy); }
+  .territory-picker-btn svg { width: 12px; height: 12px; }
+
+  @media print { .territory-overlay, .territory-picker-btn { display: none !important; } }
+
+
+  /* ─── PRINT HEADER CARD ──────────────────────────────── */
+  .print-header-card {
+    display: none;
+  }
+  @media print {
+    .print-header-card {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      border: 1px solid #D8E2EF;
+      border-radius: 8px;
+      padding: 1rem 1.25rem;
+      margin-bottom: 1.25rem;
+      page-break-inside: avoid;
+    }
+    .phc-left { display: flex; flex-direction: column; gap: 4px; }
+    .phc-logo  { font-size: 16pt; font-weight: 700; color: #0B1F3A; letter-spacing: -0.02em; }
+    .phc-sub   { font-size: 9pt; color: #5A6E87; }
+    .phc-right { text-align: right; display: flex; flex-direction: column; gap: 6px; }
+    .phc-country-row, .phc-name-row, .phc-date-row { font-size: 10pt; color: #0B1F3A; }
+    .phc-country-label, .phc-name-label, .phc-date-label { color: #5A6E87; font-size: 9pt; margin-right: 4px; }
+    .phc-client { font-size: 14pt; font-weight: 700; color: #0B1F3A; display: block; margin-top: 2px; }
+    .phc-name-row { margin-bottom: 2px; }
+    .print-notes-card {
+      display: block !important;
+      border: 1px solid #D8E2EF;
+      border-radius: 8px;
+      padding: 0.75rem 1rem;
+      margin-bottom: 1rem;
+      page-break-inside: avoid;
+    }
+    .print-notes-label { font-size: 8pt; font-weight: 600; letter-spacing: 0.08em; text-transform: uppercase; color: #9BAEC4; margin-bottom: 4px; }
+    .print-notes-text  { font-size: 10pt; color: #0B1F3A; line-height: 1.6; white-space: pre-wrap; }
+    .screen-only { display: none !important; }
+  }
+  .print-notes-card { display: none; }
+
 </style>
 </head>
 <body>
@@ -757,6 +932,26 @@
           <input type="checkbox" id="rental">
           <span>Rental</span>
         </label>
+        <label class="check-item" id="lbl-noRss">
+          <input type="checkbox" id="noRssFee">
+          <span>No RSS Fee</span>
+        </label>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div>
+      <div class="section-title">Client & Notes</div>
+      <div class="field-group">
+        <div class="field">
+          <label>Client Name</label>
+          <input type="text" id="clientName" placeholder="e.g. John Smith" style="font-family:var(--sans);">
+        </div>
+        <div class="field">
+          <label>User Notes</label>
+          <textarea id="userNotes" placeholder="Add any notes about this calculation..." rows="3" style="font-family:var(--sans);font-size:13px;border:1px solid var(--border);border-radius:var(--radius);padding:8px 10px;background:var(--surface);color:var(--text);width:100%;resize:vertical;line-height:1.5;" onfocus="this.style.borderColor='var(--teal-lite)';this.style.boxShadow='0 0 0 3px rgba(14,123,108,0.12)'" onblur="this.style.borderColor='var(--border)';this.style.boxShadow='none'"></textarea>
+        </div>
       </div>
     </div>
 
@@ -787,7 +982,26 @@
 
     <div>
       <h1 class="page-title">NAGICO Premium Calculation</h1>
-      <p class="page-sub">Territory: Curaçao (CUR) &nbsp;·&nbsp; Currency: ANG (XCG) &nbsp;·&nbsp; GetPremRateABC + CalcNoOverride</p>
+      <p class="page-sub" id="pageSubtitle">Territory: Curaçao (CUR) &nbsp;·&nbsp; Currency: XCG &nbsp;·&nbsp; Engine: GetPremRateABC</p>
+    </div>
+
+    <!-- Print-only header card (hidden on screen, shown when printing) -->
+    <div class="print-header-card" id="printHeaderCard">
+      <div class="phc-left">
+        <div class="phc-logo">NAGICO</div>
+        <div class="phc-sub">Vehicle Premium Calculator</div>
+      </div>
+      <div class="phc-right">
+        <div class="phc-country-row"><span class="phc-country-label">Country:</span> <span id="phcTerritory">Curaçao</span></div>
+        <div class="phc-name-row"><span class="phc-name-label">Name:</span> <span class="phc-client" id="phcClient"></span></div>
+        <div class="phc-date-row"><span class="phc-date-label">Date Calculated:</span> <span id="phcDate"></span></div>
+      </div>
+    </div>
+
+    <!-- Print-only notes card -->
+    <div class="print-notes-card" id="printNotesCard">
+      <div class="print-notes-label">Notes</div>
+      <div class="print-notes-text" id="printNotesText"></div>
     </div>
 
     <!-- Empty state -->
@@ -835,7 +1049,7 @@
 
 
     <div class="print-footer" id="printFooter">
-      NAGICO Vehicle Premium Calculator &nbsp;·&nbsp; Curaçao (CUR) &nbsp;·&nbsp; Generated: <span id="printDate"></span>
+      NAGICO Vehicle Premium Calculator &nbsp;·&nbsp; <span id="printFooterTerritory">Curaçao (CUR)</span> &nbsp;·&nbsp; Generated: <span id="printDate"></span>
     </div>
 
   </main>
@@ -868,8 +1082,8 @@
     <div class="divider"></div>
     <div class="section-title">Notices</div>
     <div class="info-box info" id="noticeBox">
-      <strong>CUR Tax Info</strong>
-      No government tax or VAT applies to vehicle premiums in Curaçao (GovTax = 0, GovVAT = 0).
+      <strong id="noticeTitle">CUR Tax Info</strong>
+      <span id="noticeText"></span>
     </div>
 
     <div id="aaldNotice" class="info-box warn hidden">
@@ -1029,7 +1243,7 @@ const RATES = {
   ],
 
   // Sys (CUR)
-  sys: { policyfee: 55.32, newvehdisc: 0, govTax: 0.07, govVAT: 0, nrsa: 0 },  // Tax=0.07 from Sys table; PremVAT=0
+  sys: { policyfee: 55.32, newvehdisc: 0, govTax: 0.07, govVAT: 0, nrsa: 0, rssFee: 0 },  // rssFee from PremVar.RSS_Fee; 0 for CUR (ARU-only charge)
 };
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -1104,6 +1318,7 @@ function calculate() {
   const staff       = document.getElementById('staff').checked;
   const newVeh      = document.getElementById('newVeh').checked;
   const rental      = document.getElementById('rental').checked;
+  const noRssFee    = document.getElementById('noRssFee').checked;
   const pv = getPremVar(vehUse, coverage);
   const covData = RATES.coverage[coverage] || RATES.coverage["C"];
   const sys         = RATES.sys;
@@ -1322,29 +1537,82 @@ function calculate() {
   } else {
     steps.push({ label: 'VAT (CUR = 0%)', amount: 0, running: null, type: 'neutral', zero: true });
   }
-  steps.push({ label: 'NRSA (CUR = 0)', amount: 0, running: null, type: 'neutral', zero: true });
+  // RSS Fee — from PremVar.RSS_Fee; only charged for ARU (eff. date >= 2024).
+  // For CUR: rssFee = 0. Suppressed when noRssFee checkbox is checked.
+  const rssFeeAmt = noRssFee ? 0 : sys.rssFee;
+  if (rssFeeAmt > 0) {
+    steps.push({ label: `RSS Fee`, amount: rssFeeAmt, running: null, type: 'positive' });
+  } else {
+    steps.push({ label: `RSS Fee (not applicable for ${currentTerritory.code})`, amount: 0, running: null, type: 'neutral', zero: true });
+  }
+  const nrsaAmt = sys.nrsa;
+  if (nrsaAmt > 0) {
+    steps.push({ label: 'NRSA', amount: nrsaAmt, running: null, type: 'positive' });
+  } else {
+    steps.push({ label: 'NRSA (0)', amount: 0, running: null, type: 'neutral', zero: true });
+  }
 
   // ── TOTAL ──
-  const totalPremium = round2(netPremium + sys.policyfee + govTaxAmt + govVATAmt + sys.nrsa);
+  const totalPremium = round2(netPremium + sys.policyfee + govTaxAmt + govVATAmt + nrsaAmt + rssFeeAmt);
 
   // ── RENDER ──
   document.getElementById('emptyState').classList.add('hidden');
   document.getElementById('results').classList.remove('hidden');
   document.getElementById('exportBar').style.display = 'flex';
-  document.getElementById('dispTotal').textContent = 'XCG ' + fmt(totalPremium);
+  document.getElementById('dispTotal').textContent = currentTerritory.currency + ' ' + fmt(totalPremium);
   document.getElementById('minPremBadge').classList.toggle('hidden', !minPremApplied);
 
   // Right panel
-  document.getElementById('rpBasic').textContent  = 'XCG ' + fmt(basicPremium);
-  document.getElementById('rpNCD').textContent    = 'XCG ' + fmt(ncdAmt);
+  const cur = currentTerritory.currency;
+  document.getElementById('rpBasic').textContent  = cur + ' ' + fmt(basicPremium);
+  document.getElementById('rpNCD').textContent    = cur + ' ' + fmt(ncdAmt);
   document.getElementById('rpNCDSub').textContent = `NCD ${ncdPct}% applied`;
-  document.getElementById('rpNet').textContent    = 'XCG ' + fmt(netPremium);
-  document.getElementById('rpTotal').textContent  = 'XCG ' + fmt(totalPremium);
+  document.getElementById('rpNet').textContent    = cur + ' ' + fmt(netPremium);
+  document.getElementById('rpTotal').textContent  = cur + ' ' + fmt(totalPremium);
+
+  // Dynamic notice box — reflect actual tax rate
+  const taxPct = (sys.govTax * 100).toFixed(0);
+  const vatPct = (sys.govVAT * 100).toFixed(0);
+  document.getElementById('noticeTitle').textContent = currentTerritory.code + ' Tax Info';
+  if (sys.govTax > 0 || sys.govVAT > 0) {
+    document.getElementById('noticeText').textContent =
+      `Government Tax: ${taxPct}% applied on (NetPremium + PolicyFee).` +
+      (sys.govVAT > 0 ? ` VAT: ${vatPct}% applied on (Net + Fee + Tax).` : ' No VAT.');
+  } else {
+    document.getElementById('noticeText').textContent =
+      `No government tax or VAT applies to vehicle premiums in ${currentTerritory.name}.`;
+  }
 
   // Notices
   document.getElementById('aaldNotice').classList.toggle('hidden', !notices.aald);
   document.getElementById('minPremNotice').classList.toggle('hidden', !notices.minPrem);
   document.getElementById('fleetCapNotice').classList.toggle('hidden', !notices.fleetCap);
+
+  // Print header card — client name + date
+  const clientName = document.getElementById('clientName').value.trim();
+  const userNotes  = document.getElementById('userNotes').value.trim();
+  const now = new Date();
+  const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
+  const timeStr = now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+  const fullDateTime = dateStr + ' at ' + timeStr;
+
+  document.getElementById('phcClient').textContent  = clientName || '—';
+  // Date format: dd-MMM-yyyy (e.g. 08-Jun-2026)
+  const printDateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}).replace(/ /g, '-');
+  document.getElementById('phcDate').textContent    = printDateStr;
+  document.getElementById('phcTerritory').textContent = currentTerritory.name;
+  document.getElementById('printFooterTerritory').textContent = currentTerritory.name + ' (' + currentTerritory.code + ')';
+  document.getElementById('printDate').textContent   = fullDateTime;
+
+  // Print notes card — only show if notes entered
+  const notesCard = document.getElementById('printNotesCard');
+  const notesText = document.getElementById('printNotesText');
+  if (userNotes) {
+    notesText.textContent = userNotes;
+    notesCard.style.setProperty('display', 'block', 'important');
+  } else {
+    notesCard.style.display = 'none';
+  }
 
   // Step table
   const tbody = document.getElementById('stepTable');
@@ -1395,7 +1663,6 @@ function calculate() {
   tbody.appendChild(trFinal);
 
   document.getElementById('stepCount').textContent = stepCount + ' steps';
-  const now = new Date(); document.getElementById('printDate').textContent = now.toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'})+' '+now.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
 
   // Scroll to results on mobile
   if (window.innerWidth <= 780) {
@@ -1425,8 +1692,84 @@ function calculate() {
     window.print();
   }
 
-  // Run on load with default values
-window.addEventListener('load', () => { setTimeout(calculate, 300); });
+  
+
+// ─── TERRITORY DEFINITIONS ────────────────────────────────────────────────────
+const TERRITORIES = [
+  { code: 'ARU', name: 'Aruba',               engine: 'GetPremRateABC',    currency: 'AWG', active: false },
+  { code: 'BON', name: 'Bonaire',             engine: 'GetPremRateABC',    currency: 'USD', active: false },
+  { code: 'CUR', name: 'Curaçao',             engine: 'GetPremRateABC',    currency: 'XCG', active: true  },
+  { code: 'SMD', name: 'Sint Maarten (Dutch)',engine: 'GetPremRateSMD',    currency: 'XCG', active: false },
+  { code: 'SMF', name: 'Saint Martin (French)',engine:'GetPremRateSMF',    currency: 'EUR', active: false },
+  { code: 'SAB', name: 'Saba',                engine: 'GetPremRateSEM',    currency: 'USD', active: false },
+  { code: 'EUX', name: 'St. Eustatius',       engine: 'GetPremRateSEM',    currency: 'USD', active: false },
+  { code: 'MON', name: 'Montserrat',          engine: 'GetPremRateSEM',    currency: 'XCD', active: false },
+  { code: 'ANG', name: 'Anguilla',            engine: 'GetPremRateANG',    currency: 'XCD', active: false },
+  { code: 'BVI', name: 'British Virgin Islands',engine:'GetPremRateBVI',   currency: 'USD', active: false },
+  { code: 'SKT', name: 'St. Kitts',           engine: 'GetPremRateSKT_NEV',currency: 'XCD', active: false },
+  { code: 'NEV', name: 'Nevis',               engine: 'GetPremRateSKT_NEV',currency: 'XCD', active: false },
+  { code: 'SLU', name: 'St. Lucia',           engine: 'GetPremRateSLU',    currency: 'XCD', active: false },
+  { code: 'DOM', name: 'Dominica',            engine: 'GetPremRateDOM',    currency: 'XCD', active: false },
+  { code: 'GRE', name: 'Grenada',             engine: 'GetPremRateGRE',    currency: 'XCD', active: false },
+  { code: 'SVC', name: 'St. Vincent',         engine: 'GetPremRateSVC',    currency: 'XCD', active: false },
+  { code: 'TCI', name: 'Turks & Caicos',      engine: 'GetPremRateTCI',    currency: 'USD', active: false },
+  { code: 'BAH', name: 'Bahamas',             engine: 'CalcNoOverride',    currency: 'BSD', active: false },
+];
+
+let currentTerritory = TERRITORIES.find(t => t.code === 'CUR');
+
+function openTerritoryPicker() {
+  const grid = document.getElementById('territoryGrid');
+  grid.innerHTML = TERRITORIES.map(t => `
+    <div class="territory-card ${t.active ? '' : 'territory-soon'} ${t.code === currentTerritory.code ? 'territory-active' : ''}"
+         onclick="${t.active ? `selectTerritory('${t.code}')` : ''}">
+      <div class="territory-code">${t.code}</div>
+      <div class="territory-name">${t.name}</div>
+      <div class="territory-engine">${t.engine}</div>
+      ${t.active ? '' : '<span class="territory-soon-badge">Coming soon</span>'}
+    </div>
+  `).join('');
+  document.getElementById('territoryOverlay').style.display = 'flex';
+}
+
+function closeTerritoryPicker() {
+  document.getElementById('territoryOverlay').style.display = 'none';
+}
+
+function selectTerritory(code) {
+  const t = TERRITORIES.find(t => t.code === code);
+  if (!t || !t.active) return;
+  currentTerritory = t;
+  document.getElementById('headerBadge').textContent = `${t.code} · ${t.name}`;
+  document.getElementById('headerCurrency').textContent = t.currency;
+  document.getElementById('pageSubtitle').innerHTML =
+    `Territory: ${t.name} (${t.code}) &nbsp;·&nbsp; Currency: ${t.currency} &nbsp;·&nbsp; Engine: ${t.engine}`;
+  closeTerritoryPicker();
+  // Reset results when territory changes
+  document.getElementById('results').classList.add('hidden');
+  document.getElementById('emptyState').classList.remove('hidden');
+  document.getElementById('exportBar').style.display = 'none';
+}
+
+// Run on load — attach territory backdrop listener after DOM is ready, then calculate
+window.addEventListener('load', () => {
+  document.getElementById('territoryOverlay').addEventListener('click', function(e) {
+    if (e.target === this) closeTerritoryPicker();
+  });
+  setTimeout(calculate, 300);
+});
 </script>
+
+<!-- ═══ TERRITORY PICKER MODAL ═══ -->
+<div class="territory-overlay" id="territoryOverlay" style="display:none;">
+  <div class="territory-modal">
+    <div class="territory-modal-header">
+      <h2>Select Territory</h2>
+      <button class="close-btn" onclick="closeTerritoryPicker()">✕</button>
+    </div>
+    <div class="territory-grid" id="territoryGrid"></div>
+  </div>
+</div>
+
 </body>
 </html>
