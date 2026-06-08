@@ -763,7 +763,7 @@
       <div class="field-group">
         <div class="field">
           <label>Insured Value (XCG)</label>
-          <input type="number" id="vehValue" value="9841.50" step="0.01" min="0">
+          <input type="number" id="vehValue" value="" step="0.01" min="0" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
         </div>
         <div class="field-row">
           <div class="field">
@@ -882,7 +882,7 @@
         </div>
         <div class="field">
           <label>Extra Coverage (XCG)</label>
-          <input type="number" id="extraCov" value="86.11" step="0.01" min="0">
+          <input type="number" id="extraCov" value="" step="0.01" min="0">
         </div>
         <div class="field">
           <label>Liability Tier</label>
@@ -898,7 +898,7 @@
         </div>
         <div class="field">
           <label>Campaigns / Coupon (XCG)</label>
-          <input type="number" id="campaigns" value="0" min="0" step="0.01">
+          <input type="number" id="campaigns" value="" min="0" step="0.01">
         </div>
       </div>
     </div>
