@@ -1059,7 +1059,7 @@
     <div class="section-title">Summary</div>
 
     <div class="metric-card">
-      <div class="metric-label">Basic Premium</div>
+      <div class="metric-label">Gross Premium</div>
       <div class="metric-value" id="rpBasic">—</div>
       <div class="metric-sub">Before discounts</div>
     </div>
@@ -1363,28 +1363,20 @@ function calculate() {
 
     // Rate increase from CompRateUpdates (assumed 0 here — flag for dev)
     steps.push({ label: 'Rate increase (CompRateUpdates) — query DB live', amount: 0, running: basicPremium, type: 'neutral', zero: true });
-
-    // Liability AddTPL
-    const liabFactor = parseFloat(liability) || 0;
-    if (liabFactor > 0) {
-      addTPL = round2(basicPremium * liabFactor);
-      const liabEntry = RATES.liabilityVar.find(l => l.value === liabFactor) || {label: `+${liabFactor*100}%`};
-      steps.push({ label: `Add. TP Liability – ${liabEntry.label}`, amount: addTPL, running: round2(basicPremium + addTPL), type: 'positive' });
-    } else {
-      steps.push({ label: 'Add. TP Liability (standard – included in base)', amount: 0, running: basicPremium, type: 'neutral', zero: true });
-    }
   }
 
   // ── STEP 2: RATE UP & VEHICLE AGE ──
+  let tmp = basicPremium;
+
   if (rateUpPct > 0) {
     rateUpAmt = round2(basicPremium * rateUpPct / 100);
-    steps.push({ label: `Rate Up (${rateUpPct}%)`, amount: rateUpAmt, running: basicPremium + rateUpAmt, type: 'positive' });
+    steps.push({ label: `Rate Up (${rateUpPct}%)`, amount: rateUpAmt, running: tmp + rateUpAmt, type: 'positive' });
+    tmp = round2(tmp + rateUpAmt);
   } else {
-    steps.push({ label: 'Rate Up (0%)', amount: 0, running: basicPremium, type: 'neutral', zero: true });
+    steps.push({ label: 'Rate Up (0%)', amount: 0, running: tmp, type: 'neutral', zero: true });
   }
 
-  let tmp = round2(basicPremium + rateUpAmt + addTPL);
-  steps.push({ label: 'Sub-total (BasicPremium + RateUp + AddTPL)', amount: null, running: tmp, type: 'subtotal', sublabel: true });
+  steps.push({ label: 'Sub-total (BasicPremium + RateUp)', amount: null, running: tmp, type: 'subtotal', sublabel: true });
 
   // ── STEP 3: LOADINGS ──
   if (!rental) {
@@ -1411,6 +1403,19 @@ function calculate() {
       tmp = round2(tmp + flAmt);
     } else {
       steps.push({ label: 'Foreign License (not applicable)', amount: 0, running: tmp, type: 'neutral', zero: true });
+    }
+  }
+
+  // ── STEP 3.5: ADD. TP LIABILITY ──
+  if (!noOverride) {
+    const liabFactor = parseFloat(liability) || 0;
+    if (liabFactor > 0) {
+      addTPL = round2(basicPremium * liabFactor);
+      const liabEntry = RATES.liabilityVar.find(l => l.value === liabFactor) || {label: `+${liabFactor*100}%`};
+      steps.push({ label: `Add. TP Liability – ${liabEntry.label}`, amount: addTPL, running: round2(tmp + addTPL), type: 'positive' });
+      tmp = round2(tmp + addTPL);
+    } else {
+      steps.push({ label: 'Add. TP Liability (standard – included in base)', amount: 0, running: tmp, type: 'neutral', zero: true });
     }
   }
 
@@ -1564,7 +1569,7 @@ function calculate() {
 
   // Right panel
   const cur = currentTerritory.currency;
-  document.getElementById('rpBasic').textContent  = cur + ' ' + fmt(basicPremium);
+  document.getElementById('rpBasic').textContent  = cur + ' ' + fmt(discountPremium);
   document.getElementById('rpNCD').textContent    = cur + ' ' + fmt(ncdAmt);
   document.getElementById('rpNCDSub').textContent = `NCD ${ncdPct}% applied`;
   document.getElementById('rpNet').textContent    = cur + ' ' + fmt(netPremium);
@@ -1684,6 +1689,8 @@ function calculate() {
     sel.innerHTML = scale.map(v => `<option value="${v}"${v===cur?' selected':''}>${v >= 0 ? v+'%' : v+'% (Malus)'}</option>`).join('');
     // If current value not in new scale, reset to 0
     if (!scale.includes(cur)) sel.value = '0';
+    
+    calculate();
   }
 
   function exportPDF() {
