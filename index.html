@@ -1891,7 +1891,27 @@ const TERRITORIES = [
   { code: 'BAH', name: 'Bahamas',             engine: 'CalcNoOverride',    currency: 'BSD', active: false },
 ];
 
-let currentTerritory = TERRITORIES.find(t => t.code === 'CUR');
+const TERRITORY_STORAGE_KEY = 'nagicoLastTerritory';
+
+function getStoredTerritoryCode() {
+  try {
+    return localStorage.getItem(TERRITORY_STORAGE_KEY);
+  } catch (err) {
+    return null;
+  }
+}
+
+function setStoredTerritoryCode(code) {
+  try {
+    localStorage.setItem(TERRITORY_STORAGE_KEY, code);
+  } catch (err) {
+    // Some browser/privacy modes block storage; the calculator still works without remembering the selection.
+  }
+}
+
+const storedTerritoryCode = getStoredTerritoryCode();
+let currentTerritory = TERRITORIES.find(t => t.active && t.code === storedTerritoryCode)
+  || TERRITORIES.find(t => t.code === 'CUR');
 window.currentTerritory = currentTerritory;
 
 function updateCurrencyLabels() {
@@ -1974,6 +1994,7 @@ function selectTerritory(code) {
   if (!t || !t.active) return;
   currentTerritory = t;
   window.currentTerritory = currentTerritory;
+  setStoredTerritoryCode(currentTerritory.code);
   updateTerritoryDisplay();
   if (window.applyCatalogValue && document.getElementById('catalogYear')?.value) applyCatalogValue();
   closeTerritoryPicker();
