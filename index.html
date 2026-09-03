@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -74,15 +74,56 @@
     background: white;
   }
   .logo-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .header-badge {
+  .header-badge, .territory-select {
     background: var(--navy-lite);
     color: var(--gold-lite);
+    border: 1px solid rgba(255,255,255,0.16);
     font-family: var(--mono);
     font-size: 11px;
-    padding: 3px 10px;
-    border-radius: 20px;
+    padding: 4px 10px;
+    border-radius: 6px;
     letter-spacing: 0.06em;
   }
+  .territory-select {
+    height: 30px;
+    cursor: pointer;
+    outline: none;
+  }
+  .territory-select option { color: var(--text); }
+  .territory-flag {
+    width: 42px;
+    height: 28px;
+    border-radius: 4px;
+    border: 1px solid rgba(255,255,255,0.45);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.22);
+    display: inline-block;
+    position: relative;
+    overflow: hidden;
+    flex: 0 0 auto;
+  }
+  .territory-flag::after {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+    padding: 2px 0 0 3px;
+    color: #fff;
+    font-size: 7px;
+    letter-spacing: 1px;
+    line-height: 1;
+    text-shadow: 0 1px 1px rgba(0,0,0,0.35);
+  }
+  .flag-cur {
+    background: linear-gradient(to bottom, #002b7f 0 45%, #f9e814 45% 58%, #002b7f 58% 100%);
+  }
+  .flag-cur::after { content: '★ ★'; }
+  .flag-bon {
+    background:
+      linear-gradient(146deg, transparent 0 46%, #fff 46% 56%, #d21034 56% 62%, transparent 62% 100%),
+      linear-gradient(to bottom, #f9d616 0 50%, #003da5 50% 100%);
+  }
+  .flag-bon::after { content: '★'; color: #111; text-shadow: none; }
 
   /* ─── LAYOUT ─────────────────────────────────────── */
   .app-body {
@@ -717,8 +758,12 @@
     Vehicle Premium Calculator
   </div>
   <div style="display:flex;align-items:center;gap:10px;">
-    <span class="header-badge">CUR · Curaçao</span>
-    <span style="color:var(--gold-lite);font-size:12px;font-family:var(--mono);">ANG / XCG</span>
+    <span id="territoryFlag" class="territory-flag flag-cur" role="img" aria-label="Curaçao flag" title="Curaçao"></span>
+    <select id="territorySelect" class="territory-select" onchange="selectTerritory(this.value)">
+      <option value="CUR" selected>CUR · Curaçao</option>
+      <option value="BON">BON · Bonaire</option>
+    </select>
+    <span id="headerCurrency" style="color:var(--gold-lite);font-size:12px;font-family:var(--mono);">XCG</span>
   </div>
 </header>
 
@@ -751,6 +796,12 @@
               <option value="SHORT">Short Period...</option>
             </select>
           </div>
+        </div>
+        <div class="field">
+          <label>Policy Type</label>
+          <select id="polType">
+            <option value="V" selected>Vehicle (V)</option>
+          </select>
         </div>
         <div class="field hidden" id="shortPeriodField">
           <label>Short Period Duration</label>
@@ -797,13 +848,13 @@
             </select>
           </div>
           <div class="field">
-            <label>Catalog Value (XCG)</label>
+            <label>Catalog Value (<span class="currency-code">XCG</span>)</label>
             <input type="text" id="catalogValue" value="" readonly>
           </div>
         </div>
         <div class="catalog-status" id="catalogStatus"></div>
         <div class="field">
-          <label>Insured Value (XCG)</label>
+          <label>Insured Value (<span class="currency-code">XCG</span>)</label>
           <input type="number" id="vehValue" value="" step="0.01" min="0" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
         </div>
         <div class="field-row">
@@ -918,12 +969,27 @@
           <input type="number" id="managDisc" value="0" min="0" max="100" step="1">
         </div>
         <div class="field">
+          <label>Staff Type</label>
+          <select id="masterAgentCode">
+            <option value="NON" selected>Direct / Employee</option>
+            <option value="OTHER">Agent / Other</option>
+          </select>
+        </div>
+        <div class="field">
           <label>Pass. Liability Seats</label>
           <input type="number" id="passLiab" value="3" min="0" max="99">
         </div>
         <div class="field">
-          <label>Extra Coverage (XCG)</label>
+          <label>Tools of Trade (<span class="currency-code">XCG</span>)</label>
+          <input type="number" id="toolsOfTrade" value="" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label>Extra Coverage 1 (<span class="currency-code">XCG</span>)</label>
           <input type="number" id="extraCov" value="" step="0.01" min="0">
+        </div>
+        <div class="field">
+          <label>Extra Coverage 2 (<span class="currency-code">XCG</span>)</label>
+          <input type="number" id="extraCov2" value="" step="0.01" min="0">
         </div>
         <div class="field">
           <label>Liability Tier</label>
@@ -938,7 +1004,14 @@
             </select>
         </div>
         <div class="field">
-          <label>Campaigns / Coupon (XCG)</label>
+          <label>Campaign Type</label>
+          <select id="campaignType">
+            <option value="FLAT" selected>Flat amount</option>
+            <option value="PCT">Percentage</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Campaigns / Coupon (<span class="currency-code">XCG</span>)</label>
           <input type="number" id="campaigns" value="" min="0" step="0.01">
         </div>
       </div>
@@ -1005,7 +1078,7 @@
         <div class="toggle-switch" id="overrideToggle"></div>
       </div>
       <div id="overrideField" class="field hidden" style="margin-top:8px;">
-        <label>Manual Basic Premium (XCG)</label>
+        <label>Manual Basic Premium (<span class="currency-code">XCG</span>)</label>
         <input type="number" id="manualBasic" value="0" step="0.01">
       </div>
     </div>
@@ -1063,7 +1136,7 @@
         <div>
           <div class="total-label">Total Premium</div>
           <div class="total-amount" id="dispTotal">—</div>
-          <div class="total-currency">Caribbean Guilder (XCG) · Curaçao</div>
+          <div class="total-currency" id="totalCurrencyLabel">Caribbean Guilder (XCG) · Curaçao</div>
         </div>
         <div id="minPremBadge" class="hidden total-min-badge">Min. Premium Applied</div>
       </div>
@@ -1147,9 +1220,10 @@
 </div>
 
 <script src="data/catalog-values.js"></script>
+<script src="data/bon-rates.js"></script>
 <script>
 // ─── RATE TABLES — CUR database export (all tables) ─────────────────────────
-const RATES = {
+let RATES = {
 
   // AbcTprate (CUR) — FRSUMINS/TOSUMINS → Premium (XCG)
   abcTpRate: [
@@ -1289,6 +1363,7 @@ const RATES = {
   // Sys (CUR)
   sys: { policyfee: 55.32, newvehdisc: 0, govTax: 0.07, govVAT: 0, nrsa: 0, rssFee: 0 },  // rssFee from PremVar.RSS_Fee; 0 for CUR (ARU-only charge)
 };
+const CUR_RATES = RATES;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 function getAbcTpPremium(vehicleValue) {
@@ -1305,6 +1380,21 @@ function getPremVar(vehUse, coverage) {
       || RATES.premVarTable['PR_C'];
 }
 
+function getMinimumPremium(polType, coverage, vehUse) {
+  const rows = RATES.minimumPremium || [];
+  const match = rows.find(row => {
+    const rowPolType = String(row.polType || row.poltyp || '').trim();
+    const rowCoverage = String(row.coverage || row.string1 || '').trim();
+    const rowUses = String(row.vehicleUses || row.string2 || '').trim();
+    const polMatches = !rowPolType || rowPolType === polType;
+    const covMatches = !rowCoverage || rowCoverage === coverage;
+    const useMatches = !rowUses || rowUses.split(/[,;\s]+/).filter(Boolean).includes(vehUse);
+    return polMatches && covMatches && useMatches;
+  });
+  const tableValue = match ? Number(match.premium ?? match.minimumPremium ?? match.value) : NaN;
+  if (Number.isFinite(tableValue) && tableValue > 0) return tableValue;
+  return Number(RATES.minPremium || 0);
+}
 function getVehicleAgeRateUp(vehType, vehYear) {
   const vt = RATES.vehicleTypes.find(v => v.type === vehType);
   if (!vt || vt.rateUpYear === 0) return 0;
@@ -1335,7 +1425,7 @@ document.querySelectorAll('.check-item input').forEach(cb => {
 
 function calculate() {
   const steps = [];
-  let notices = { aald: false, minPrem: false, fleetCap: false };
+  let notices = { aald: false, minPrem: false, fleetCap: false, missingCoverageRate: false };
 
   // ── INPUTS ──
   const coverage    = document.getElementById('coverage').value;
@@ -1352,9 +1442,14 @@ function calculate() {
   const ncdPct      = parseFloat(document.getElementById('ncd').value) || 0;
   const rateUpPct   = parseFloat(document.getElementById('rateUp').value) || 0;
   const managDiscPct= parseFloat(document.getElementById('managDisc').value) || 0;
+  const polType     = document.getElementById('polType')?.value || 'V';
+  const masterAgentCode = document.getElementById('masterAgentCode')?.value || 'NON';
   const passSeats   = parseInt(document.getElementById('passLiab').value) || 0;
+  const toolsOfTrade= parseFloat(document.getElementById('toolsOfTrade')?.value) || 0;
   const extraCov    = parseFloat(document.getElementById('extraCov').value) || 0;
+  const extraCov2   = parseFloat(document.getElementById('extraCov2')?.value) || 0;
   const liability   = document.getElementById('liability').value;
+  const campaignType= document.getElementById('campaignType')?.value || 'FLAT';
   const campaigns   = parseFloat(document.getElementById('campaigns').value) || 0;
   const aald        = document.getElementById('aald').checked;
   const forLic      = document.getElementById('forLic').checked;
@@ -1366,6 +1461,7 @@ function calculate() {
   const pv = getPremVar(vehUse, coverage);
   const covData = RATES.coverage[coverage] || RATES.coverage["C"];
   const sys         = RATES.sys;
+  const cur         = currentTerritory.currency;
 
   // ── STEP 1: BASIC PREMIUM ──
   let basicPremium = 0;
@@ -1379,7 +1475,7 @@ function calculate() {
     if (coverage === 'TP' || coverage === 'LAR') {
       basicPremium = getAbcTpPremium(vehValue);
       const tpBand = RATES.abcTpRate.find(b => b.to >= vehValue) || RATES.abcTpRate[RATES.abcTpRate.length-1];
-      steps.push({ label: `Basic Premium – TP table (TOSUMINS ≥ ${fmt(vehValue)} → band TOSUMINS ${fmt(tpBand.to)} → XCG ${fmt(tpBand.premium)})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+      steps.push({ label: `Basic Premium – TP table (TOSUMINS ≥ ${fmt(vehValue)} → band TOSUMINS ${fmt(tpBand.to)} → ${cur} ${fmt(tpBand.premium)})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
       const nvu = RATES.nVehUse[vehUse];
       const nvuLoad = nvu ? nvu.loadperc : 0;
       if (nvuLoad > 0) {
@@ -1389,8 +1485,9 @@ function calculate() {
       }
     } else {
       const loadperc = covData.loadperc || 0;
+      if (loadperc <= 0) notices.missingCoverageRate = true;
       basicPremium = round2(vehValue * loadperc);
-      steps.push({ label: `Basic Premium – ${covData.name} (XCG ${fmt(vehValue)} × ${(loadperc*100).toFixed(0)}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+      steps.push({ label: `Basic Premium – ${covData.name} (${cur} ${fmt(vehValue)} × ${(loadperc*100).toFixed(2)}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
       const nvu = RATES.nVehUse[vehUse];
       const nvuLoad = nvu ? nvu.loadperc : 0;
       if (nvuLoad > 0) {
@@ -1454,13 +1551,21 @@ function calculate() {
   if (!noOverride) {
     const liabFactor = parseFloat(liability) || 0;
     if (liabFactor > 0) {
-      addTPL = round2(basicPremium * liabFactor);
+      const liabilityBase = currentTerritory.code === 'BON' || currentTerritory.code === 'CUR' || currentTerritory.code === 'ARU'
+        ? round2(basicPremium + rateUpAmt)
+        : basicPremium;
+      addTPL = round2(liabilityBase * liabFactor);
       const liabEntry = RATES.liabilityVar.find(l => l.value === liabFactor) || {label: `+${liabFactor*100}%`};
       steps.push({ label: `Add. TP Liability – ${liabEntry.label}`, amount: addTPL, running: round2(tmp + addTPL), type: 'positive' });
       tmp = round2(tmp + addTPL);
     } else {
       steps.push({ label: 'Add. TP Liability (standard – included in base)', amount: 0, running: tmp, type: 'neutral', zero: true });
     }
+  }
+
+  if (toolsOfTrade > 0) {
+    steps.push({ label: 'Tools of Trade', amount: toolsOfTrade, running: round2(tmp + toolsOfTrade), type: 'positive' });
+    tmp = round2(tmp + toolsOfTrade);
   }
 
   // ── STEP 4: DISCOUNTS ──
@@ -1479,8 +1584,9 @@ function calculate() {
   }
 
   if (staff) {
-    const staffAmt = round2(tmp * pv.staffdisc / 100);
-    steps.push({ label: `Staff Discount (${pv.staffdisc}%)`, amount: -staffAmt, running: round2(tmp - staffAmt), type: 'negative' });
+    const staffRate = (masterAgentCode === 'NON' || masterAgentCode === 'EMP') ? pv.staffdisc : 20;
+    const staffAmt = round2(tmp * staffRate / 100);
+    steps.push({ label: `Staff Discount (${staffRate}%)`, amount: -staffAmt, running: round2(tmp - staffAmt), type: 'negative' });
     tmp = round2(tmp - staffAmt);
   }
 
@@ -1541,24 +1647,32 @@ function calculate() {
     passLiabAmt = round2(passSeats * pv.passliab);
     if (periodCode === '6M' || periodCode === '3M50' || periodCode === '9M50') passLiabAmt = round2(passLiabAmt / 2);
     if (periodCode === '1Q') passLiabAmt = round2(passLiabAmt * pv.quarterly / 100);
-    steps.push({ label: `Passenger Liability (${passSeats} seats × XCG ${pv.passliab.toFixed(2)})`, amount: passLiabAmt, running: null, type: 'positive' });
+    steps.push({ label: `Passenger Liability (${passSeats} seats × ${cur} ${pv.passliab.toFixed(2)})`, amount: passLiabAmt, running: null, type: 'positive' });
   }
 
-  const campaignAmt = round2(-Math.abs(campaigns));
-  if (campaigns > 0) {
-    steps.push({ label: 'Campaign / Coupon', amount: campaignAmt, running: null, type: 'negative' });
-  }
-
+  const extraCoverages = round2(extraCov + extraCov2);
   if (extraCov > 0) {
-    steps.push({ label: 'Extra Coverage', amount: extraCov, running: null, type: 'positive' });
+    steps.push({ label: 'Extra Coverage 1', amount: extraCov, running: null, type: 'positive' });
+  }
+  if (extraCov2 > 0) {
+    steps.push({ label: 'Extra Coverage 2', amount: extraCov2, running: null, type: 'positive' });
+  }
+
+  let campaignAmt = 0;
+  if (campaigns > 0) {
+    const campaignBase = round2(discountPremium - nvdValue + passLiabAmt + extraCoverages);
+    campaignAmt = campaignType === 'PCT'
+      ? round2(-Math.abs(campaignBase * campaigns / 100))
+      : round2(-Math.abs(campaigns));
+    steps.push({ label: campaignType === 'PCT' ? `Campaign / Coupon (${campaigns}%)` : 'Campaign / Coupon', amount: campaignAmt, running: null, type: 'negative' });
   }
 
   // ── STEP 8: NET PREMIUM ──
-  let netPremium = round2(discountPremium - nvdValue + passLiabAmt + extraCov + campaignAmt);
+  let netPremium = round2(discountPremium - nvdValue + passLiabAmt + extraCoverages + campaignAmt);
 
   // Minimum premium check
   let minPremApplied = false;
-  const minPrem = RATES.minPremium || 50;
+  const minPrem = getMinimumPremium(polType, coverage, vehUse);
   let minPremThreshold = minPrem;
   if (isShort) minPremThreshold = round2(minPrem * shortPerc / 100);
   else if (periodCode === '6M' || periodCode === '3M50' || periodCode === '9M50') minPremThreshold = round2(minPrem / 2);
@@ -1567,13 +1681,13 @@ function calculate() {
     netPremium = minPremThreshold;
     minPremApplied = true;
     notices.minPrem = true;
-    steps.push({ label: `Minimum premium floor applied (XCG ${fmt(minPremThreshold)})`, amount: null, running: netPremium, type: 'subtotal' });
+    steps.push({ label: `Minimum premium floor applied (${cur} ${fmt(minPremThreshold)})`, amount: null, running: netPremium, type: 'subtotal' });
   }
 
   steps.push({ label: 'Net Premium', amount: null, running: netPremium, type: 'subtotal', sublabel: true });
 
   // ── STEP 9: FEES ──
-  steps.push({ label: `Policy Fee (CUR Sys table)`, amount: sys.policyfee, running: null, type: 'positive' });
+  steps.push({ label: `Policy Fee (${currentTerritory.code} Sys table)`, amount: sys.policyfee, running: null, type: 'positive' });
   const govTaxAmt = round2((netPremium + sys.policyfee) * sys.govTax);
   const govVATAmt = round2((netPremium + sys.policyfee + govTaxAmt) * sys.govVAT);
   if (govTaxAmt > 0) {
@@ -1584,7 +1698,7 @@ function calculate() {
   if (govVATAmt > 0) {
     steps.push({ label: `VAT (${(sys.govVAT*100).toFixed(0)}% of NetPremium + PolicyFee + Tax)`, amount: govVATAmt, running: null, type: 'positive' });
   } else {
-    steps.push({ label: 'VAT (CUR = 0%)', amount: 0, running: null, type: 'neutral', zero: true });
+    steps.push({ label: `VAT (${currentTerritory.code} = 0%)`, amount: 0, running: null, type: 'neutral', zero: true });
   }
   // RSS Fee — from PremVar.RSS_Fee; only charged for ARU (eff. date >= 2024).
   // For CUR: rssFee = 0. Suppressed when noRssFee checkbox is checked.
@@ -1612,7 +1726,6 @@ function calculate() {
   document.getElementById('minPremBadge').classList.toggle('hidden', !minPremApplied);
 
   // Right panel
-  const cur = currentTerritory.currency;
   document.getElementById('rpBasic').textContent  = cur + ' ' + fmt(discountPremium);
   document.getElementById('rpNCD').textContent    = cur + ' ' + fmt(ncdAmt);
   document.getElementById('rpNCDSub').textContent = `NCD ${ncdPct}% applied`;
@@ -1636,6 +1749,9 @@ function calculate() {
   document.getElementById('aaldNotice').classList.toggle('hidden', !notices.aald);
   document.getElementById('minPremNotice').classList.toggle('hidden', !notices.minPrem);
   document.getElementById('fleetCapNotice').classList.toggle('hidden', !notices.fleetCap);
+  if (notices.missingCoverageRate) {
+    document.getElementById('noticeText').textContent += ' The selected territory has a 0% coverage rate for this coverage in the Excel Coverage sheet. Fill LoadPerc for BON C/SC/TPC to calculate a base premium.';
+  }
 
   // Print header card — client name + date
   const clientName = document.getElementById('clientName').value.trim();
@@ -1696,11 +1812,11 @@ function calculate() {
     tdNum.className = 'step-num';
 
     if (s.running !== null && s.running !== undefined && s.type === 'subtotal') {
-      tdNum.textContent = 'XCG ' + fmt(s.running);
+      tdNum.textContent = currentTerritory.currency + ' ' + fmt(s.running);
       tdNum.className = 'step-num neutral';
     } else if (s.amount !== null && s.amount !== undefined) {
       const sign = s.amount > 0 ? '+' : '';
-      tdNum.textContent = (s.amount === 0 ? '—' : sign + 'XCG ' + fmt(s.amount));
+      tdNum.textContent = (s.amount === 0 ? '—' : sign + currentTerritory.currency + ' ' + fmt(s.amount));
       tdNum.className = `step-num ${s.type}`;
     } else if (s.note) {
       tdNum.textContent = s.note;
@@ -1716,7 +1832,7 @@ function calculate() {
   const trFinal = document.createElement('tr');
   trFinal.classList.add('subtotal');
   trFinal.style.borderTop = '2px solid #0B1F3A';
-  trFinal.innerHTML = `<td class="step-label" style="font-size:14px;font-weight:700;color:#0B1F3A">TOTAL PREMIUM</td><td class="step-num" style="font-size:15px;font-weight:700;color:#0B1F3A;font-family:'DM Mono',monospace;">XCG ${fmt(totalPremium)}</td>`;
+  trFinal.innerHTML = `<td class="step-label" style="font-size:14px;font-weight:700;color:#0B1F3A">TOTAL PREMIUM</td><td class="step-num" style="font-size:15px;font-weight:700;color:#0B1F3A;font-family:'DM Mono',monospace;">${currentTerritory.currency} ${fmt(totalPremium)}</td>`;
   tbody.appendChild(trFinal);
 
   document.getElementById('stepCount').textContent = stepCount + ' steps';
@@ -1756,8 +1872,8 @@ function calculate() {
 // ─── TERRITORY DEFINITIONS ────────────────────────────────────────────────────
 const TERRITORIES = [
   { code: 'ARU', name: 'Aruba',               engine: 'GetPremRateABC',    currency: 'AWG', active: false },
-  { code: 'BON', name: 'Bonaire',             engine: 'GetPremRateABC',    currency: 'USD', active: false },
-  { code: 'CUR', name: 'Curaçao',             engine: 'GetPremRateABC',    currency: 'XCG', active: true  },
+  { code: 'BON', name: 'Bonaire',             engine: 'GetPremRateABC',    currency: 'USD', currencyName: 'United States Dollar', active: true  },
+  { code: 'CUR', name: 'Curaçao',             engine: 'GetPremRateABC',    currency: 'XCG', currencyName: 'Caribbean Guilder', active: true  },
   { code: 'SMD', name: 'Sint Maarten (Dutch)',engine: 'GetPremRateSMD',    currency: 'XCG', active: false },
   { code: 'SMF', name: 'Saint Martin (French)',engine:'GetPremRateSMF',    currency: 'EUR', active: false },
   { code: 'SAB', name: 'Saba',                engine: 'GetPremRateSEM',    currency: 'USD', active: false },
@@ -1776,6 +1892,64 @@ const TERRITORIES = [
 ];
 
 let currentTerritory = TERRITORIES.find(t => t.code === 'CUR');
+window.currentTerritory = currentTerritory;
+
+function updateCurrencyLabels() {
+  document.querySelectorAll('.currency-code').forEach(el => { el.textContent = currentTerritory.currency; });
+}
+
+function updateLiabilityOptions() {
+  const sel = document.getElementById('liability');
+  if (!sel) return;
+  const current = parseFloat(sel.value) || 0;
+  sel.innerHTML = (RATES.liabilityVar || []).map(l => {
+    const label = l.label || l.amount || ((l.value * 100).toFixed(0) + '%');
+    return '<option value="' + l.value + '"' + (l.value === current ? ' selected' : '') + '>' + label + '</option>';
+  }).join('');
+  if (![...sel.options].some(o => parseFloat(o.value) === current)) sel.value = '0';
+}
+
+function vehicleTypeLabel(type) {
+  const labels = {
+    MotorCycles: 'Motorcycle'
+  };
+  return labels[type] || type;
+}
+
+function updateVehicleTypeOptions() {
+  const sel = document.getElementById('vehType');
+  if (!sel) return;
+  const current = sel.value;
+  const types = (RATES.vehicleTypes || []).map(v => v.type).filter(Boolean);
+  const uniqueTypes = [...new Set(types)];
+  sel.innerHTML = uniqueTypes.map(type =>
+    '<option value="' + type + '"' + (type === current ? ' selected' : '') + '>' + vehicleTypeLabel(type) + '</option>'
+  ).join('');
+  if (uniqueTypes.length && !uniqueTypes.includes(current)) sel.value = uniqueTypes[0];
+}
+
+
+function updateTerritoryDisplay() {
+  window.currentTerritory = currentTerritory;
+  RATES = currentTerritory.code === 'BON' && window.BON_RATES ? window.BON_RATES : CUR_RATES;
+  const territorySelect = document.getElementById('territorySelect');
+  if (territorySelect) territorySelect.value = currentTerritory.code;
+  const territoryFlag = document.getElementById('territoryFlag');
+  if (territoryFlag) {
+    territoryFlag.className = 'territory-flag flag-' + currentTerritory.code.toLowerCase();
+    territoryFlag.setAttribute('aria-label', currentTerritory.name + ' flag');
+    territoryFlag.title = currentTerritory.name;
+  }
+  document.getElementById('headerCurrency').textContent = currentTerritory.currency;
+  document.getElementById('pageSubtitle').innerHTML =
+    'Territory: ' + currentTerritory.name + ' (' + currentTerritory.code + ') &nbsp;·&nbsp; Currency: ' + currentTerritory.currency + ' &nbsp;·&nbsp; Engine: ' + currentTerritory.engine;
+  document.getElementById('totalCurrencyLabel').textContent =
+    (currentTerritory.currencyName || currentTerritory.currency) + ' (' + currentTerritory.currency + ') · ' + currentTerritory.name;
+  updateCurrencyLabels();
+  updateLiabilityOptions();
+  updateVehicleTypeOptions();
+  updateNcdOptions();
+}
 
 function openTerritoryPicker() {
   const grid = document.getElementById('territoryGrid');
@@ -1799,10 +1973,9 @@ function selectTerritory(code) {
   const t = TERRITORIES.find(t => t.code === code);
   if (!t || !t.active) return;
   currentTerritory = t;
-  document.getElementById('headerBadge').textContent = `${t.code} · ${t.name}`;
-  document.getElementById('headerCurrency').textContent = t.currency;
-  document.getElementById('pageSubtitle').innerHTML =
-    `Territory: ${t.name} (${t.code}) &nbsp;·&nbsp; Currency: ${t.currency} &nbsp;·&nbsp; Engine: ${t.engine}`;
+  window.currentTerritory = currentTerritory;
+  updateTerritoryDisplay();
+  if (window.applyCatalogValue && document.getElementById('catalogYear')?.value) applyCatalogValue();
   closeTerritoryPicker();
   // Reset results when territory changes
   document.getElementById('results').classList.add('hidden');
@@ -1812,6 +1985,7 @@ function selectTerritory(code) {
 
 // Run on load — attach territory backdrop listener after DOM is ready, then calculate
 window.addEventListener('load', () => {
+  updateTerritoryDisplay();
   document.getElementById('territoryOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeTerritoryPicker();
   });
@@ -1833,4 +2007,3 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
-
