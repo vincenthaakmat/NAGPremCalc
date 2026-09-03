@@ -103,10 +103,15 @@
       return;
     }
 
-    catalogValue.value = window.fmt ? fmt(value) : Number(value).toFixed(2);
-    document.getElementById('vehValue').value = Number(value).toFixed(2);
+    const territory = window.currentTerritory || { code: 'CUR', currency: 'XCG' };
+    const convertedValue = territory.code === 'BON' ? Number(value) / 1.8 : Number(value);
+    const formattedValue = window.fmt ? fmt(convertedValue) : convertedValue.toFixed(2);
+    const sourceNote = territory.code === 'BON' ? ' (XCG catalog value converted at 1.8)' : '';
+
+    catalogValue.value = formattedValue;
+    document.getElementById('vehValue').value = convertedValue.toFixed(2);
     document.getElementById('vehYear').value = year;
-    setStatus('Catalog value copied to insured value: ', 'XCG ' + (window.fmt ? fmt(value) : Number(value).toFixed(2)));
+    setStatus('Catalog value copied to insured value' + sourceNote + ': ', territory.currency + ' ' + formattedValue);
 
     if (!document.getElementById('results').classList.contains('hidden') && window.calculate) {
       calculate();
