@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+﻿<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
@@ -67,12 +67,13 @@
     letter-spacing: 0.02em;
   }
   .logo-icon {
-    width: 34px; height: 34px;
-    background: var(--gold);
-    border-radius: 8px;
+    width: 118px; height: 38px;
+    border-radius: 6px;
     display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+    background: white;
   }
-  .logo-icon svg { width: 18px; height: 18px; fill: white; }
+  .logo-icon img { width: 100%; height: 100%; object-fit: contain; display: block; }
   .header-badge {
     background: var(--navy-lite);
     color: var(--gold-lite);
@@ -157,6 +158,16 @@
 
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+  .catalog-status {
+    min-height: 18px;
+    font-size: 11px;
+    line-height: 1.45;
+    color: var(--muted);
+  }
+  .catalog-status strong {
+    color: var(--teal);
+    font-weight: 600;
+  }
 
   /* checkboxes */
   .check-group {
@@ -489,7 +500,7 @@
     body { background: white !important; font-size: 11pt; }
     .app-header { position: static; background: white !important; border-bottom: 2px solid #0B1F3A; }
     .logo { color: #0B1F3A !important; }
-    .logo-icon { background: #D4952A !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+    .logo-icon { background: white !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
     .header-badge { background: #F7F9FC !important; color: #0B1F3A !important; border: 1px solid #D8E2EF; }
     .app-body { display: block; }
     .sidebar { display: none; }
@@ -670,11 +681,14 @@
       page-break-inside: avoid;
     }
     .phc-left { display: flex; flex-direction: column; gap: 4px; }
+    .phc-logo-img { width: 120px; height: auto; display: block; margin-bottom: 4px; }
     .phc-logo  { font-size: 16pt; font-weight: 700; color: #0B1F3A; letter-spacing: -0.02em; }
     .phc-sub   { font-size: 9pt; color: #5A6E87; }
     .phc-right { text-align: right; display: flex; flex-direction: column; gap: 6px; }
-    .phc-country-row, .phc-name-row, .phc-date-row { font-size: 10pt; color: #0B1F3A; }
-    .phc-country-label, .phc-name-label, .phc-date-label { color: #5A6E87; font-size: 9pt; margin-right: 4px; }
+    .phc-country-row, .phc-name-row, .phc-date-row, .phc-vehicle-row { font-size: 10pt; color: #0B1F3A; }
+    .phc-country-label, .phc-name-label, .phc-date-label, .phc-vehicle-label { color: #5A6E87; font-size: 9pt; margin-right: 4px; }
+    .phc-vehicle-row { margin-top: 4px; line-height: 1.45; }
+    .phc-vehicle-value { font-weight: 700; color: #0B1F3A; }
     .phc-client { font-size: 14pt; font-weight: 700; color: #0B1F3A; display: block; margin-top: 2px; }
     .phc-name-row { margin-bottom: 2px; }
     .print-notes-card {
@@ -698,7 +712,7 @@
 <header class="app-header">
   <div class="logo">
     <div class="logo-icon">
-      <svg viewBox="0 0 24 24"><path d="M12 2L2 7v10l10 5 10-5V7L12 2zm0 2.18L20 8.5v7L12 19.82 4 15.5v-7L12 4.18z"/></svg>
+      <img src="data/logo.jpg" alt="NAGICO">
     </div>
     Vehicle Premium Calculator
   </div>
@@ -761,6 +775,33 @@
     <div>
       <div class="section-title">Vehicle</div>
       <div class="field-group">
+        <div class="field-row">
+          <div class="field">
+            <label>Catalog Make</label>
+            <select id="catalogMake" onchange="onCatalogMakeChange()">
+              <option value="">Select make...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Catalog Model</label>
+            <select id="catalogModel" onchange="onCatalogModelChange()" disabled>
+              <option value="">Select model...</option>
+            </select>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Year Make</label>
+            <select id="catalogYear" onchange="applyCatalogValue()" disabled>
+              <option value="">Select year...</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Catalog Value (XCG)</label>
+            <input type="text" id="catalogValue" value="" readonly>
+          </div>
+        </div>
+        <div class="catalog-status" id="catalogStatus"></div>
         <div class="field">
           <label>Insured Value (XCG)</label>
           <input type="number" id="vehValue" value="" step="0.01" min="0" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
@@ -988,12 +1029,14 @@
     <!-- Print-only header card (hidden on screen, shown when printing) -->
     <div class="print-header-card" id="printHeaderCard">
       <div class="phc-left">
-        <div class="phc-logo">NAGICO</div>
+        <img class="phc-logo-img" src="data/logo.jpg" alt="NAGICO">
         <div class="phc-sub">Vehicle Premium Calculator</div>
       </div>
       <div class="phc-right">
         <div class="phc-country-row"><span class="phc-country-label">Country:</span> <span id="phcTerritory">Curaçao</span></div>
         <div class="phc-name-row"><span class="phc-name-label">Name:</span> <span class="phc-client" id="phcClient"></span></div>
+        <div class="phc-vehicle-row"><span class="phc-vehicle-label">Vehicle:</span> <span id="phcVehicle"></span></div>
+        <div class="phc-vehicle-row"><span class="phc-vehicle-label">Insured Value:</span> <span class="phc-vehicle-value" id="phcInsuredValue"></span></div>
         <div class="phc-date-row"><span class="phc-date-label">Date Calculated:</span> <span id="phcDate"></span></div>
       </div>
     </div>
@@ -1103,6 +1146,7 @@
 
 </div>
 
+<script src="data/catalog-values.js"></script>
 <script>
 // ─── RATE TABLES — CUR database export (all tables) ─────────────────────────
 const RATES = {
@@ -1595,7 +1639,13 @@ function calculate() {
 
   // Print header card — client name + date
   const clientName = document.getElementById('clientName').value.trim();
-  const userNotes  = document.getElementById('userNotes').value.trim();
+  const userNotes  = document.getElementById("userNotes").value.trim();
+  const catalogMake = document.getElementById("catalogMake")?.value || "";
+  const catalogModel = document.getElementById("catalogModel")?.value || "";
+  const catalogYear = document.getElementById("catalogYear")?.value || "";
+  const printMake = catalogMake || "—";
+  const printModel = catalogModel || "—";
+  const printYear = catalogYear || String(vehYear || "—");
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
   const timeStr = now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
@@ -1605,7 +1655,9 @@ function calculate() {
   // Date format: dd-MMM-yyyy (e.g. 08-Jun-2026)
   const printDateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}).replace(/ /g, '-');
   document.getElementById('phcDate').textContent    = printDateStr;
-  document.getElementById('phcTerritory').textContent = currentTerritory.name;
+  document.getElementById("phcTerritory").textContent = currentTerritory.name;
+  document.getElementById("phcVehicle").textContent = printMake + " / " + printModel + " / " + printYear;
+  document.getElementById("phcInsuredValue").textContent = cur + " " + fmt(vehValue);
   document.getElementById('printFooterTerritory').textContent = currentTerritory.name + ' (' + currentTerritory.code + ')';
   document.getElementById('printDate').textContent   = fullDateTime;
 
@@ -1766,6 +1818,7 @@ window.addEventListener('load', () => {
   setTimeout(calculate, 300);
 });
 </script>
+<script src="data/catalog-lookup.js"></script>
 
 <!-- ═══ TERRITORY PICKER MODAL ═══ -->
 <div class="territory-overlay" id="territoryOverlay" style="display:none;">
@@ -1780,3 +1833,4 @@ window.addEventListener('load', () => {
 
 </body>
 </html>
+
