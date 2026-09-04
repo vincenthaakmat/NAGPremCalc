@@ -115,9 +115,13 @@
     text-shadow: 0 1px 1px rgba(0,0,0,0.35);
   }
   .flag-cur {
-    background: linear-gradient(to bottom, #002b7f 0 45%, #f9e814 45% 58%, #002b7f 58% 100%);
+    background-image: url("data/CUR_Flag.pbg"), url("data/CUR_Flag.png"), linear-gradient(to bottom, #002b7f 0 45%, #f9e814 45% 58%, #002b7f 58% 100%);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #002b7f;
   }
-  .flag-cur::after { content: '★ ★'; }
+  .flag-cur::after { content: none; }
   .flag-bon {
     background-image: url("data/Bon_flag.pbng"), url("data/BON_Flag.png");
     background-position: center;
