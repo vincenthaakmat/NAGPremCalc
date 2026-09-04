@@ -124,6 +124,10 @@
       linear-gradient(to bottom, #f9d616 0 50%, #003da5 50% 100%);
   }
   .flag-bon::after { content: '★'; color: #111; text-shadow: none; }
+  .flag-aru {
+    background: linear-gradient(to bottom, #418fde 0 24%, #f9d616 24% 30%, #d21034 30% 36%, #f9d616 36% 42%, #418fde 42% 100%);
+  }
+  .flag-aru::after { content: '★'; }
 
   /* ─── LAYOUT ─────────────────────────────────────── */
   .app-body {
@@ -762,6 +766,7 @@
     <select id="territorySelect" class="territory-select" onchange="selectTerritory(this.value)">
       <option value="CUR" selected>CUR · Curaçao</option>
       <option value="BON">BON · Bonaire</option>
+      <option value="ARU">ARU · Aruba</option>
     </select>
     <span id="headerCurrency" style="color:var(--gold-lite);font-size:12px;font-family:var(--mono);">XCG</span>
   </div>
@@ -1221,6 +1226,7 @@
 
 <script src="data/catalog-values.js"></script>
 <script src="data/bon-rates.js"></script>
+<script src="data/aru-rates.js"></script>
 <script>
 // ─── RATE TABLES — CUR database export (all tables) ─────────────────────────
 let RATES = {
@@ -1366,18 +1372,29 @@ let RATES = {
 const CUR_RATES = RATES;
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
-function getAbcTpPremium(vehicleValue) {
-  // Matches C# SQL: WHERE TOSUMINS >= vehicleValue ORDER BY TOSUMINS ASC → first row
-  for (const b of RATES.abcTpRate) {
-    if (b.to >= vehicleValue) return b.premium;
-  }
-  return RATES.abcTpRate[RATES.abcTpRate.length - 1].premium;
+function getAbcTpRowsForSelection(coverage, vehUse, vehType) {
+  const rows = RATES.abcTpRate || [];
+  const isMotorOrHarley = vehUse === 'HB' || vehType === 'MotorCycle' || vehType === 'MotorCycles';
+  const useVehCatLookup = (currentTerritory.code === 'ARU' || currentTerritory.code === 'CUR') && isMotorOrHarley &&
+    (vehUse === 'HB' || ((vehType === 'MotorCycle' || vehType === 'MotorCycles') && coverage === 'LAR'));
+  const filtered = useVehCatLookup ? rows.filter(b => String(b.vehCat || '') === coverage) : rows;
+  return filtered.length ? filtered : rows;
+}
+
+function getAbcTpBand(vehicleValue, coverage, vehUse, vehType) {
+  const rows = getAbcTpRowsForSelection(coverage, vehUse, vehType);
+  return rows.find(b => b.to >= vehicleValue) || rows[rows.length - 1] || { to: 0, premium: 0, vehCat: '' };
+}
+
+function getAbcTpPremium(vehicleValue, coverage, vehUse, vehType) {
+  return getAbcTpBand(vehicleValue, coverage, vehUse, vehType).premium;
 }
 
 function getPremVar(vehUse, coverage) {
   return RATES.premVarTable[vehUse+'_'+coverage]
       || RATES.premVarTable[vehUse+'_C']
-      || RATES.premVarTable['PR_C'];
+      || RATES.premVarTable['PR_C']
+      || { aald:0, licexp:0, underageperc:0, forlicense:0, fleetdisc:0, staffdisc:0, passliab:0, quarterly:25, halfyearly:50, rssFee:0, missing: true };
 }
 
 function getMinimumPremium(polType, coverage, vehUse) {
@@ -1425,7 +1442,7 @@ document.querySelectorAll('.check-item input').forEach(cb => {
 
 function calculate() {
   const steps = [];
-  let notices = { aald: false, minPrem: false, fleetCap: false, missingCoverageRate: false };
+  let notices = { aald: false, minPrem: false, fleetCap: false, missingCoverageRate: false, missingVehicleUse: false, missingPremVar: false };
 
   // ── INPUTS ──
   const coverage    = document.getElementById('coverage').value;
@@ -1459,6 +1476,8 @@ function calculate() {
   const rental      = document.getElementById('rental').checked;
   const noRssFee    = document.getElementById('noRssFee').checked;
   const pv = getPremVar(vehUse, coverage);
+  if (!RATES.nVehUse[vehUse]) notices.missingVehicleUse = true;
+  if (pv.missing) notices.missingPremVar = true;
   const covData = RATES.coverage[coverage] || RATES.coverage["C"];
   const sys         = RATES.sys;
   const cur         = currentTerritory.currency;
@@ -1473,8 +1492,8 @@ function calculate() {
     steps.push({ label: 'Basic Premium (manual override)', amount: basicPremium, running: basicPremium, type: 'neutral' });
   } else {
     if (coverage === 'TP' || coverage === 'LAR') {
-      basicPremium = getAbcTpPremium(vehValue);
-      const tpBand = RATES.abcTpRate.find(b => b.to >= vehValue) || RATES.abcTpRate[RATES.abcTpRate.length-1];
+      basicPremium = getAbcTpPremium(vehValue, coverage, vehUse, vehType);
+      const tpBand = getAbcTpBand(vehValue, coverage, vehUse, vehType);
       steps.push({ label: `Basic Premium – TP table (TOSUMINS ≥ ${fmt(vehValue)} → band TOSUMINS ${fmt(tpBand.to)} → ${cur} ${fmt(tpBand.premium)})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
       const nvu = RATES.nVehUse[vehUse];
       const nvuLoad = nvu ? nvu.loadperc : 0;
@@ -1494,6 +1513,11 @@ function calculate() {
         const nvuAmt = round2(basicPremium * nvuLoad);
         basicPremium = round2(basicPremium + nvuAmt);
         steps.push({ label: `  + Vehicle use surcharge (${nvu.label}: ${nvuLoad*100}%)`, amount: nvuAmt, running: basicPremium, type: 'positive' });
+      }
+      if (currentTerritory.code === 'ARU' && coverage === 'TPC' && newVeh) {
+        const aruTpcAmt = round2(basicPremium * 0.05);
+        basicPremium = round2(basicPremium + aruTpcAmt);
+        steps.push({ label: 'ARU TPC new vehicle increase (5%)', amount: aruTpcAmt, running: basicPremium, type: 'positive' });
       }
       if (coverage === 'SC') {
         const scAmt = round2(basicPremium * covData.replacementvalue);
@@ -1688,10 +1712,11 @@ function calculate() {
 
   // ── STEP 9: FEES ──
   steps.push({ label: `Policy Fee (${currentTerritory.code} Sys table)`, amount: sys.policyfee, running: null, type: 'positive' });
-  const govTaxAmt = round2((netPremium + sys.policyfee) * sys.govTax);
+  const govTaxRate = (currentTerritory.code === 'ARU' && coverage === 'TP') ? 0 : sys.govTax;
+  const govTaxAmt = round2((netPremium + sys.policyfee) * govTaxRate);
   const govVATAmt = round2((netPremium + sys.policyfee + govTaxAmt) * sys.govVAT);
   if (govTaxAmt > 0) {
-    steps.push({ label: `Government Tax (${(sys.govTax*100).toFixed(0)}% of NetPremium + PolicyFee)`, amount: govTaxAmt, running: null, type: 'positive' });
+    steps.push({ label: `Government Tax (${(govTaxRate*100).toFixed(0)}% of NetPremium + PolicyFee)`, amount: govTaxAmt, running: null, type: 'positive' });
   } else {
     steps.push({ label: 'Government Tax (0%)', amount: 0, running: null, type: 'neutral', zero: true });
   }
@@ -1700,15 +1725,15 @@ function calculate() {
   } else {
     steps.push({ label: `VAT (${currentTerritory.code} = 0%)`, amount: 0, running: null, type: 'neutral', zero: true });
   }
-  // RSS Fee — from PremVar.RSS_Fee; only charged for ARU (eff. date >= 2024).
-  // For CUR: rssFee = 0. Suppressed when noRssFee checkbox is checked.
-  const rssFeeAmt = noRssFee ? 0 : sys.rssFee;
+  // RSS Fee: ARU uses PremVar.RSS_Fee when available; other territories use Sys fallback.
+  const territoryRssFee = currentTerritory.code === 'ARU' ? (pv.rssFee || sys.rssFee || 0) : (sys.rssFee || 0);
+  const rssFeeAmt = noRssFee ? 0 : territoryRssFee;
   if (rssFeeAmt > 0) {
     steps.push({ label: `RSS Fee`, amount: rssFeeAmt, running: null, type: 'positive' });
   } else {
     steps.push({ label: `RSS Fee (not applicable for ${currentTerritory.code})`, amount: 0, running: null, type: 'neutral', zero: true });
   }
-  const nrsaAmt = sys.nrsa;
+  const nrsaAmt = noRssFee && currentTerritory.code === 'ARU' ? 0 : sys.nrsa;
   if (nrsaAmt > 0) {
     steps.push({ label: 'NRSA', amount: nrsaAmt, running: null, type: 'positive' });
   } else {
@@ -1750,7 +1775,13 @@ function calculate() {
   document.getElementById('minPremNotice').classList.toggle('hidden', !notices.minPrem);
   document.getElementById('fleetCapNotice').classList.toggle('hidden', !notices.fleetCap);
   if (notices.missingCoverageRate) {
-    document.getElementById('noticeText').textContent += ' The selected territory has a 0% coverage rate for this coverage in the Excel Coverage sheet. Fill LoadPerc for BON C/SC/TPC to calculate a base premium.';
+    document.getElementById('noticeText').textContent += ' The selected territory has a 0% coverage rate for this coverage in the Excel Coverage sheet. Fill LoadPerc for ' + currentTerritory.code + ' C/SC/TPC to calculate a base premium.';
+  }
+  if (notices.missingVehicleUse) {
+    document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' NVehUse row was found for the selected vehicle use.';
+  }
+  if (notices.missingPremVar) {
+    document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' PremVar row was found for the selected vehicle use and coverage.';
   }
 
   // Print header card — client name + date
@@ -1871,7 +1902,7 @@ function calculate() {
 
 // ─── TERRITORY DEFINITIONS ────────────────────────────────────────────────────
 const TERRITORIES = [
-  { code: 'ARU', name: 'Aruba',               engine: 'GetPremRateABC',    currency: 'AWG', active: false },
+  { code: 'ARU', name: 'Aruba',               engine: 'GetPremRateABC',    currency: 'AWG', currencyName: 'Aruban Florin', active: true },
   { code: 'BON', name: 'Bonaire',             engine: 'GetPremRateABC',    currency: 'USD', currencyName: 'United States Dollar', active: true  },
   { code: 'CUR', name: 'Curaçao',             engine: 'GetPremRateABC',    currency: 'XCG', currencyName: 'Caribbean Guilder', active: true  },
   { code: 'SMD', name: 'Sint Maarten (Dutch)',engine: 'GetPremRateSMD',    currency: 'XCG', active: false },
@@ -1918,6 +1949,48 @@ function updateCurrencyLabels() {
   document.querySelectorAll('.currency-code').forEach(el => { el.textContent = currentTerritory.currency; });
 }
 
+function coverageLabel(code, data) {
+  const name = data && data.name ? data.name : code;
+  return name + ' (' + code + ')';
+}
+
+function updateCoverageOptions() {
+  const sel = document.getElementById('coverage');
+  if (!sel) return;
+  const current = sel.value;
+  const entries = Object.entries(RATES.coverage || {});
+  if (!entries.length) return;
+  sel.innerHTML = entries.map(([code, data]) =>
+    '<option value="' + code + '"' + (code === current ? ' selected' : '') + '>' + coverageLabel(code, data) + '</option>'
+  ).join('');
+  if (!entries.some(([code]) => code === current)) sel.value = entries[0][0];
+}
+
+function updateVehicleUseOptions() {
+  const sel = document.getElementById('vehUse');
+  if (!sel) return;
+  const current = sel.value;
+  const entries = Object.entries(RATES.nVehUse || {});
+  if (!entries.length) return;
+  sel.innerHTML = entries.map(([code, data]) => {
+    const label = (data && data.label ? data.label : code) + ' (' + code + ')';
+    return '<option value="' + code + '"' + (code === current ? ' selected' : '') + '>' + label + '</option>';
+  }).join('');
+  if (!entries.some(([code]) => code === current)) sel.value = entries[0][0];
+}
+function updateShortPeriodOptions() {
+  const sel = document.getElementById('shortPeriodSelect');
+  if (!sel) return;
+  const current = parseFloat(sel.value) || 0;
+  const rows = (RATES.shortPeriods || []).filter(sp => Number(sp.value) > 0);
+  if (!rows.length) return;
+  sel.innerHTML = rows.map(sp => {
+    const value = Number(sp.value);
+    const label = (sp.label || 'Short Period') + ' (' + value + '%)';
+    return '<option value="' + value + '"' + (value === current ? ' selected' : '') + '>' + label + '</option>';
+  }).join('');
+  if (![...sel.options].some(o => parseFloat(o.value) === current)) sel.value = String(rows[0].value);
+}
 function updateLiabilityOptions() {
   const sel = document.getElementById('liability');
   if (!sel) return;
@@ -1951,7 +2024,8 @@ function updateVehicleTypeOptions() {
 
 function updateTerritoryDisplay() {
   window.currentTerritory = currentTerritory;
-  RATES = currentTerritory.code === 'BON' && window.BON_RATES ? window.BON_RATES : CUR_RATES;
+  RATES = currentTerritory.code === 'ARU' && window.ARU_RATES ? window.ARU_RATES :
+          currentTerritory.code === 'BON' && window.BON_RATES ? window.BON_RATES : CUR_RATES;
   const territorySelect = document.getElementById('territorySelect');
   if (territorySelect) territorySelect.value = currentTerritory.code;
   const territoryFlag = document.getElementById('territoryFlag');
