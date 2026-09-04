@@ -1411,13 +1411,22 @@ function getAbcTpRowsForSelection(coverage, vehUse, vehType) {
   const isMotorOrHarley = vehUse === 'HB' || vehType === 'MotorCycle' || vehType === 'MotorCycles';
   const useVehCatLookup = (currentTerritory.code === 'ARU' || currentTerritory.code === 'CUR') && isMotorOrHarley &&
     (vehUse === 'HB' || ((vehType === 'MotorCycle' || vehType === 'MotorCycles') && coverage === 'LAR'));
-  const filtered = useVehCatLookup ? rows.filter(b => String(b.vehCat || '') === coverage) : rows;
+  const isStandardTpRow = b => {
+    const vehCat = String(b.vehCat || '').trim().toUpperCase();
+    return !vehCat || vehCat === 'NULL';
+  };
+  const filtered = useVehCatLookup ? rows.filter(b => String(b.vehCat || '') === coverage) : rows.filter(isStandardTpRow);
   return filtered.length ? filtered : rows;
 }
 
 function getAbcTpBand(vehicleValue, coverage, vehUse, vehType) {
-  const rows = getAbcTpRowsForSelection(coverage, vehUse, vehType);
-  return rows.find(b => b.to >= vehicleValue) || rows[rows.length - 1] || { to: 0, premium: 0, vehCat: '' };
+  const rows = getAbcTpRowsForSelection(coverage, vehUse, vehType)
+    .slice()
+    .sort((a, b) => Number(a.from || 0) - Number(b.from || 0));
+  return rows.find(b => Number(b.from || 0) <= vehicleValue && Number(b.to || 0) >= vehicleValue)
+    || rows.find(b => Number(b.to || 0) >= vehicleValue)
+    || rows[rows.length - 1]
+    || { from: 0, to: 0, premium: 0, vehCat: '' };
 }
 
 function getAbcTpPremium(vehicleValue, coverage, vehUse, vehType) {
