@@ -1,4 +1,4 @@
-﻿(function () {
+(function () {
   const CATALOG = window.CATALOG_VALUES || { years: [], makes: {} };
 
   function sortText(a, b) {
@@ -106,7 +106,8 @@
     const territory = window.currentTerritory || { code: 'CUR', currency: 'XCG' };
     const convertedValue = territory.code === 'BON' ? Number(value) / 1.8 : Number(value);
     const formattedValue = window.fmt ? fmt(convertedValue) : convertedValue.toFixed(2);
-    const sourceNote = territory.code === 'BON' ? ' (XCG catalog value converted at 1.8)' : '';
+    const sourceNote = territory.code === 'BON' ? ' (XCG catalog value converted at 1.8)' :
+      territory.code === 'ARU' ? ' (CUR catalog value used 1:1)' : '';
 
     catalogValue.value = formattedValue;
     document.getElementById('vehValue').value = convertedValue.toFixed(2);
