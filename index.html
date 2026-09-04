@@ -127,9 +127,13 @@
   }
   .flag-bon::after { content: none; }
   .flag-aru {
-    background: linear-gradient(to bottom, #418fde 0 24%, #f9d616 24% 30%, #d21034 30% 36%, #f9d616 36% 42%, #418fde 42% 100%);
+    background-image: url("data/ARU_Flag.pbg"), url("data/ARU_Flag.png"), linear-gradient(to bottom, #418fde 0 24%, #f9d616 24% 30%, #d21034 30% 36%, #f9d616 36% 42%, #418fde 42% 100%);
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #418fde;
   }
-  .flag-aru::after { content: '★'; }
+  .flag-aru::after { content: none; }
 
   /* ─── LAYOUT ─────────────────────────────────────── */
   .app-body {
