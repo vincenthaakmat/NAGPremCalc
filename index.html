@@ -119,11 +119,13 @@
   }
   .flag-cur::after { content: '★ ★'; }
   .flag-bon {
-    background:
-      linear-gradient(146deg, transparent 0 46%, #fff 46% 56%, #d21034 56% 62%, transparent 62% 100%),
-      linear-gradient(to bottom, #f9d616 0 50%, #003da5 50% 100%);
+    background-image: url("data/Bon_flag.pbng"), url("data/BON_Flag.png");
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #fff;
   }
-  .flag-bon::after { content: '★'; color: #111; text-shadow: none; }
+  .flag-bon::after { content: none; }
   .flag-aru {
     background: linear-gradient(to bottom, #418fde 0 24%, #f9d616 24% 30%, #d21034 30% 36%, #f9d616 36% 42%, #418fde 42% 100%);
   }
