@@ -857,6 +857,29 @@
             <input type="text" id="catalogValue" value="" readonly>
           </div>
         </div>
+        <div id="customCatalogFields" class="hidden">
+          <div class="field-row">
+            <div class="field">
+              <label>Other Make</label>
+              <input type="text" id="customCatalogMake" value="">
+            </div>
+            <div class="field">
+              <label>Other Model</label>
+              <input type="text" id="customCatalogModel" value="">
+            </div>
+          </div>
+          <div class="field-row">
+            <div class="field">
+              <label>Other Year Make</label>
+              <input type="number" id="customCatalogYear" value="" min="1900" max="2100" step="1">
+            </div>
+            <div class="field">
+              <label>Other Catalog Value (<span class="currency-code">XCG</span>)</label>
+              <input type="number" id="customCatalogValue" value="" min="0" step="0.01">
+            </div>
+          </div>
+          <button type="button" class="export-btn btn-print" style="width:100%;justify-content:center;" onclick="saveCustomCatalogEntry()">Save Catalog Entry</button>
+        </div>
         <div class="catalog-status" id="catalogStatus"></div>
         <div class="field">
           <label>Insured Value (<span class="currency-code">XCG</span>)</label>
@@ -1225,6 +1248,7 @@
 </div>
 
 <script src="data/catalog-values.js"></script>
+<script src="data/aru-catalog-values.js"></script>
 <script src="data/bon-rates.js"></script>
 <script src="data/aru-rates.js"></script>
 <script>
@@ -1787,9 +1811,10 @@ function calculate() {
   // Print header card — client name + date
   const clientName = document.getElementById('clientName').value.trim();
   const userNotes  = document.getElementById("userNotes").value.trim();
-  const catalogMake = document.getElementById("catalogMake")?.value || "";
-  const catalogModel = document.getElementById("catalogModel")?.value || "";
-  const catalogYear = document.getElementById("catalogYear")?.value || "";
+  const catalogPrint = window.getCatalogPrintSelection ? window.getCatalogPrintSelection() : null;
+  const catalogMake = catalogPrint?.make || document.getElementById("catalogMake")?.value || "";
+  const catalogModel = catalogPrint?.model || document.getElementById("catalogModel")?.value || "";
+  const catalogYear = catalogPrint?.year || document.getElementById("catalogYear")?.value || "";
   const printMake = catalogMake || "—";
   const printModel = catalogModel || "—";
   const printYear = catalogYear || String(vehYear || "—");
@@ -2042,6 +2067,7 @@ function updateTerritoryDisplay() {
   updateCurrencyLabels();
   updateLiabilityOptions();
   updateVehicleTypeOptions();
+  if (window.initCatalogLookup) window.initCatalogLookup();
   updateNcdOptions();
 }
 
