@@ -828,7 +828,7 @@
         <div class="field-row">
           <div class="field">
             <label>Coverage</label>
-            <select id="coverage" onchange="updateNcdOptions()">
+            <select id="coverage" onchange="onCoverageChange()">
               <option value="C">Comprehensive (C)</option>
               <option value="SC">Super Cover (SC)</option>
               <option value="TPC">TP Limited Comp (TPC)</option>
@@ -1584,7 +1584,8 @@ function calculate() {
       const loadperc = covData.loadperc || 0;
       if (loadperc <= 0) notices.missingCoverageRate = true;
       basicPremium = round2(vehValue * loadperc);
-      steps.push({ label: `Basic Premium – ${covData.name} (${cur} ${fmt(vehValue)} × ${(loadperc*100).toFixed(2)}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+      const loadPercDecimals = currentTerritory.code === 'ARU' ? 14 : 2;
+      steps.push({ label: `Basic Premium – ${covData.name} (${cur} ${fmt(vehValue)} × ${(loadperc*100).toFixed(loadPercDecimals)}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
       const nvu = RATES.nVehUse[vehUse];
       const nvuLoad = nvu ? nvu.loadperc : 0;
       if (nvuLoad > 0) {
@@ -1808,9 +1809,9 @@ function calculate() {
   } else {
     steps.push({ label: `VAT (${currentTerritory.code} = 0%)`, amount: 0, running: null, type: 'neutral', zero: true });
   }
-  // RSS Fee: ARU only charges RSS on Third Party; other territories use Sys fallback.
+  // RSS Fee: ARU charges RSS on Third Party and TP Limited Comp; other territories use Sys fallback.
   const territoryRssFee = currentTerritory.code === 'ARU'
-    ? (coverage === 'TP' ? (pv.rssFee || sys.rssFee || 0) : 0)
+    ? (['TP', 'TPC'].includes(coverage) ? (pv.rssFee || sys.rssFee || 0) : 0)
     : (sys.rssFee || 0);
   const rssFeeAmt = noRssFee ? 0 : territoryRssFee;
   if (rssFeeAmt > 0) {
@@ -1966,15 +1967,20 @@ function calculate() {
     document.getElementById('shortPeriodField').classList.toggle('hidden', p !== 'SHORT');
   }
 
-  function updateNcdOptions() {
+  function updateNcdOptions(recalculate = true) {
     const cov = document.getElementById('coverage').value;
-    const scale = RATES.ncdScale[cov] || RATES.ncdScale['C'];
+    const scale = RATES.ncdScale[cov] || RATES.ncdScale['C'] || [0];
     const sel = document.getElementById('ncd');
     const cur = parseInt(sel.value);
     sel.innerHTML = scale.map(v => `<option value="${v}"${v===cur?' selected':''}>${v >= 0 ? v+'%' : v+'% (Malus)'}</option>`).join('');
     // If current value not in new scale, reset to 0
-    if (!scale.includes(cur)) sel.value = '0';
+    if (!scale.includes(cur)) sel.value = scale.includes(0) ? '0' : String(scale[0] || 0);
     
+    if (recalculate) calculate();
+  }
+
+  function onCoverageChange() {
+    refreshDropdownsForSelection(false);
     calculate();
   }
 
@@ -2107,7 +2113,14 @@ function updateVehicleTypeOptions() {
   if (uniqueTypes.length && !uniqueTypes.includes(current)) sel.value = uniqueTypes[0];
 }
 
-
+function refreshDropdownsForSelection(includeCoverage = true) {
+  if (includeCoverage) updateCoverageOptions();
+  updateVehicleUseOptions();
+  updateShortPeriodOptions();
+  updateLiabilityOptions();
+  updateVehicleTypeOptions();
+  updateNcdOptions(false);
+}
 function updateTerritoryDisplay() {
   window.currentTerritory = currentTerritory;
   RATES = currentTerritory.code === 'SMD' && window.SMD_RATES ? window.SMD_RATES :
@@ -2127,10 +2140,9 @@ function updateTerritoryDisplay() {
   document.getElementById('totalCurrencyLabel').textContent =
     (currentTerritory.currencyName || currentTerritory.currency) + ' (' + currentTerritory.currency + ') · ' + currentTerritory.name;
   updateCurrencyLabels();
-  updateLiabilityOptions();
-  updateVehicleTypeOptions();
+  refreshDropdownsForSelection(true);
   if (window.initCatalogLookup) window.initCatalogLookup();
-  updateNcdOptions();
+  calculate();
 }
 
 function openTerritoryPicker() {
