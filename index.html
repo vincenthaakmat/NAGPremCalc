@@ -616,6 +616,47 @@
   .print-footer { display: none; }
 
 
+
+  /* --- Quote form printout -------------------------------------------------- */
+  .quote-print-document { display: none; }
+  .quote-sheet {
+    background: white;
+    color: #111827;
+    font-family: Arial, Helvetica, sans-serif;
+    font-size: 10pt;
+    line-height: 1.35;
+  }
+  .quote-sheet table { width: 100%; border-collapse: collapse; }
+  .quote-brand-row { display: grid; grid-template-columns: 145px 1fr; align-items: start; gap: 16px; margin-bottom: 14px; }
+  .quote-logo { width: 128px; height: auto; }
+  .quote-title-block { text-align: center; }
+  .quote-title { font-size: 18pt; font-weight: 700; color: #0B1F3A; letter-spacing: 0; margin: 4px 0 2px; }
+  .quote-subtitle { font-size: 9pt; color: #374151; }
+  .quote-meta { border: 1px solid #111827; margin-bottom: 10px; }
+  .quote-meta td { border: 1px solid #111827; padding: 5px 7px; vertical-align: top; }
+  .quote-label { color: #374151; font-size: 8pt; text-transform: uppercase; font-weight: 700; }
+  .quote-value { display: block; min-height: 16px; font-size: 10pt; color: #111827; }
+  .quote-section-title { background: #0E7B6C; color: white; font-weight: 700; text-transform: uppercase; padding: 5px 8px; border: 1px solid #111827; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .quote-grid td { border: 1px solid #111827; padding: 5px 7px; vertical-align: top; height: 34px; }
+  .quote-premium-table th, .quote-premium-table td { border: 1px solid #111827; padding: 6px 8px; text-align: right; }
+  .quote-premium-table th:first-child, .quote-premium-table td:first-child { text-align: left; }
+  .quote-premium-table th { background: #E8F2EF; color: #0B1F3A; font-weight: 700; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .quote-total-row td { background: #0E7B6C; color: white; font-weight: 700; font-size: 12pt; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
+  .quote-notes-box { border: 1px solid #111827; min-height: 64px; padding: 7px 8px; white-space: pre-wrap; }
+  .quote-signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
+  .quote-signature-line { border-top: 1px solid #111827; padding-top: 5px; font-size: 8pt; color: #374151; }
+
+  @media print {
+    body.quote-print-mode { background: white !important; }
+    body.quote-print-mode .app-header,
+    body.quote-print-mode .sidebar,
+    body.quote-print-mode .right-panel,
+    body.quote-print-mode .main > :not(.quote-print-document) { display: none !important; }
+    body.quote-print-mode .app-body { display: block !important; }
+    body.quote-print-mode .main { display: block !important; padding: 0 !important; overflow: visible !important; }
+    body.quote-print-mode .quote-print-document { display: block !important; }
+    body.quote-print-mode .quote-sheet { display: block !important; page-break-inside: avoid; }
+  }
   /* ─── TERRITORY PICKER ───────────────────────────────── */
   .territory-overlay {
     position: fixed;
@@ -773,8 +814,8 @@
     .phc-logo  { font-size: 16pt; font-weight: 700; color: #0B1F3A; letter-spacing: -0.02em; }
     .phc-sub   { font-size: 9pt; color: #5A6E87; }
     .phc-right { text-align: right; display: flex; flex-direction: column; gap: 6px; }
-    .phc-country-row, .phc-name-row, .phc-date-row, .phc-vehicle-row { font-size: 10pt; color: #0B1F3A; }
-    .phc-country-label, .phc-name-label, .phc-date-label, .phc-vehicle-label { color: #5A6E87; font-size: 9pt; margin-right: 4px; }
+    .phc-country-row, .phc-name-row, .phc-date-row, .phc-vehicle-row, .phc-cover-row { font-size: 10pt; color: #0B1F3A; }
+    .phc-country-label, .phc-name-label, .phc-date-label, .phc-vehicle-label, .phc-cover-label { color: #5A6E87; font-size: 9pt; margin-right: 4px; }
     .phc-vehicle-row { margin-top: 4px; line-height: 1.45; }
     .phc-vehicle-value { font-weight: 700; color: #0B1F3A; }
     .phc-client { font-size: 14pt; font-weight: 700; color: #0B1F3A; display: block; margin-top: 2px; }
@@ -979,6 +1020,20 @@
             </select>
           </div>
         </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Color</label>
+            <input type="text" id="vehColor" value="" placeholder="e.g. White" oninput="calculate();">
+          </div>
+          <div class="field">
+            <label>License Plate Number</label>
+            <input type="text" id="licensePlate" value="" placeholder="e.g. A-12345" oninput="calculate();">
+          </div>
+        </div>
+        <div class="field">
+          <label>VIN</label>
+          <input type="text" id="vinNumber" value="" placeholder="Vehicle identification number" oninput="calculate();">
+        </div>
       </div>
     </div>
 
@@ -1129,11 +1184,30 @@
     <div class="divider"></div>
 
     <div>
-      <div class="section-title">Client & Notes</div>
+      <div class="section-title">Client, Cover Note & Notes</div>
       <div class="field-group">
         <div class="field">
           <label>Client Name</label>
-          <input type="text" id="clientName" placeholder="e.g. John Smith" style="font-family:var(--sans);">
+          <input type="text" id="clientName" placeholder="e.g. John Smith" style="font-family:var(--sans);" oninput="calculate();">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>Start Date</label>
+            <input type="date" id="coverStartDate" onchange="updateCoverPeriod(); calculate();">
+          </div>
+          <div class="field">
+            <label>Coverage Length</label>
+            <select id="coverLength" onchange="updateCoverPeriod(); calculate();">
+              <option value="7D">1 week</option>
+              <option value="14D">2 weeks</option>
+              <option value="1M">1 month</option>
+              <option value="2M">2 months</option>
+            </select>
+          </div>
+        </div>
+        <div class="field">
+          <label>End Date</label>
+          <input type="text" id="coverEndDate" value="" readonly>
         </div>
         <div class="field">
           <label>User Notes</label>
@@ -1182,7 +1256,9 @@
         <div class="phc-country-row"><span class="phc-country-label">Country:</span> <span id="phcTerritory">Curaçao</span></div>
         <div class="phc-name-row"><span class="phc-name-label">Name:</span> <span class="phc-client" id="phcClient"></span></div>
         <div class="phc-vehicle-row"><span class="phc-vehicle-label">Vehicle:</span> <span id="phcVehicle"></span></div>
+        <div class="phc-vehicle-row"><span class="phc-vehicle-label">Color / VIN / Plate:</span> <span id="phcVehicleDetails"></span></div>
         <div class="phc-vehicle-row"><span class="phc-vehicle-label">Insured Value:</span> <span class="phc-vehicle-value" id="phcInsuredValue"></span></div>
+        <div class="phc-cover-row"><span class="phc-cover-label">Cover Period:</span> <span id="phcCoverPeriod"></span></div>
         <div class="phc-date-row"><span class="phc-date-label">Date Calculated:</span> <span id="phcDate"></span></div>
       </div>
     </div>
@@ -1193,6 +1269,76 @@
       <div class="print-notes-text" id="printNotesText"></div>
     </div>
 
+
+    <!-- Quote form printout -->
+    <div class="quote-print-document" id="quotePrintDocument">
+      <div class="quote-sheet">
+        <div class="quote-brand-row">
+          <img class="quote-logo" src="data/logo.jpg" alt="NAGICO">
+          <div class="quote-title-block">
+            <div class="quote-title">MOTOR VEHICLE INSURANCE QUOTATION</div>
+            <div class="quote-subtitle">Aruba, Bonaire and Curaçao</div>
+          </div>
+        </div>
+
+        <table class="quote-meta">
+          <tr>
+            <td><span class="quote-label">Territory</span><span class="quote-value" id="quoteTerritory"></span></td>
+            <td><span class="quote-label">Quote Date</span><span class="quote-value" id="quoteDate"></span></td>
+            <td><span class="quote-label">Quote No.</span><span class="quote-value" id="quoteNumber"></span></td>
+          </tr>
+        </table>
+
+        <div class="quote-section-title">Client Details</div>
+        <table class="quote-grid">
+          <tr>
+            <td colspan="2"><span class="quote-label">Client Name</span><span class="quote-value" id="quoteClientName"></span></td>
+            <td><span class="quote-label">Cover Period</span><span class="quote-value" id="quoteCoverPeriod"></span></td>
+          </tr>
+        </table>
+
+        <div class="quote-section-title">Vehicle Details</div>
+        <table class="quote-grid">
+          <tr>
+            <td><span class="quote-label">Make</span><span class="quote-value" id="quoteMake"></span></td>
+            <td><span class="quote-label">Model</span><span class="quote-value" id="quoteModel"></span></td>
+            <td><span class="quote-label">Year</span><span class="quote-value" id="quoteYear"></span></td>
+          </tr>
+          <tr>
+            <td><span class="quote-label">Color</span><span class="quote-value" id="quoteColor"></span></td>
+            <td><span class="quote-label">VIN</span><span class="quote-value" id="quoteVin"></span></td>
+            <td><span class="quote-label">License Plate</span><span class="quote-value" id="quotePlate"></span></td>
+          </tr>
+          <tr>
+            <td><span class="quote-label">Vehicle Use</span><span class="quote-value" id="quoteVehicleUse"></span></td>
+            <td><span class="quote-label">Vehicle Type</span><span class="quote-value" id="quoteVehicleType"></span></td>
+            <td><span class="quote-label">Insured Value</span><span class="quote-value" id="quoteInsuredValue"></span></td>
+          </tr>
+        </table>
+
+        <div class="quote-section-title">Coverage and Premium</div>
+        <table class="quote-premium-table">
+          <tr><th>Description</th><th>Amount</th></tr>
+          <tr><td>Coverage</td><td id="quoteCoverage"></td></tr>
+          <tr><td>Policy Period</td><td id="quotePolicyPeriod"></td></tr>
+          <tr><td>Basic Premium</td><td id="quoteBasicPremium"></td></tr>
+          <tr><td>No Claim Discount</td><td id="quoteNcd"></td></tr>
+          <tr><td>Net Premium</td><td id="quoteNetPremium"></td></tr>
+          <tr><td>Policy Fee</td><td id="quotePolicyFee"></td></tr>
+          <tr><td>Government Tax / VAT</td><td id="quoteTaxes"></td></tr>
+          <tr><td>RSS / NRSA Fees</td><td id="quoteFees"></td></tr>
+          <tr class="quote-total-row"><td>Total Premium Payable</td><td id="quoteTotalPremium"></td></tr>
+        </table>
+
+        <div class="quote-section-title">Remarks</div>
+        <div class="quote-notes-box" id="quoteNotes"></div>
+
+        <div class="quote-signature-row">
+          <div class="quote-signature-line">Prepared by</div>
+          <div class="quote-signature-line">Accepted by client</div>
+        </div>
+      </div>
+    </div>
     <!-- Empty state -->
     <div class="empty-state" id="emptyState">
       <div class="empty-icon">
@@ -1231,6 +1377,10 @@
         <button class="export-btn btn-print" onclick="window.print()">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
           Print
+        </button>
+        <button class="export-btn btn-pdf" onclick="printQuote()">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M8 8h8M8 12h8M8 16h5"/></svg>
+          Print Quote
         </button>
       </div>
 
@@ -1500,6 +1650,100 @@ function getVehicleAgeRateUp(vehType, vehYear) {
 function round2(n) { return Math.round(n * 100) / 100; }
 function fmt(n)    { const num = parseFloat(n); return isNaN(num) ? '0.00' : num.toLocaleString('en-US', {minimumFractionDigits:2, maximumFractionDigits:2}); }
 function pct(p, v) { return round2(v * p / 100); }
+
+function parseInputDate(value) {
+  if (!value) return null;
+  const parts = value.split('-').map(Number);
+  if (parts.length !== 3 || parts.some(Number.isNaN)) return null;
+  return new Date(parts[0], parts[1] - 1, parts[2]);
+}
+
+function toInputDate(date) {
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  return `${yyyy}-${mm}-${dd}`;
+}
+
+function formatDisplayDate(value) {
+  const date = typeof value === 'string' ? parseInputDate(value) : value;
+  if (!date || Number.isNaN(date.getTime())) return '';
+  return date.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: 'numeric' }).replace(/ /g, '-');
+}
+
+function addMonthsClamped(date, months) {
+  const result = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+  const day = result.getDate();
+  result.setMonth(result.getMonth() + months, 1);
+  const lastDay = new Date(result.getFullYear(), result.getMonth() + 1, 0).getDate();
+  result.setDate(Math.min(day, lastDay));
+  return result;
+}
+
+function getCoverPeriod() {
+  const startEl = document.getElementById('coverStartDate');
+  const lengthEl = document.getElementById('coverLength');
+  const startDate = parseInputDate(startEl?.value || '');
+  const lengthCode = lengthEl?.value || '7D';
+  const lengthLabel = lengthEl?.selectedOptions?.[0]?.textContent || '1 week';
+  if (!startDate) return { startDate: '', endDate: '', lengthCode, lengthLabel, display: '' };
+
+  let endDate;
+  if (lengthCode.endsWith('D')) {
+    endDate = new Date(startDate);
+    endDate.setDate(endDate.getDate() + parseInt(lengthCode, 10));
+  } else if (lengthCode.endsWith('M')) {
+    endDate = addMonthsClamped(startDate, parseInt(lengthCode, 10));
+  } else {
+    endDate = new Date(startDate);
+  }
+
+  const startDisplay = formatDisplayDate(startDate);
+  const endDisplay = formatDisplayDate(endDate);
+  return {
+    startDate: toInputDate(startDate),
+    endDate: toInputDate(endDate),
+    lengthCode,
+    lengthLabel,
+    display: `${startDisplay} to ${endDisplay} (${lengthLabel})`
+  };
+}
+
+function updateCoverPeriod() {
+  const startEl = document.getElementById('coverStartDate');
+  const endEl = document.getElementById('coverEndDate');
+  if (startEl && !startEl.value) startEl.value = toInputDate(new Date());
+  const period = getCoverPeriod();
+  if (endEl) endEl.value = period.endDate ? formatDisplayDate(period.endDate) : '';
+  return period;
+}
+
+function getVehicleDocumentDetails() {
+  return {
+    color: document.getElementById('vehColor')?.value.trim() || '',
+    vin: document.getElementById('vinNumber')?.value.trim() || '',
+    licensePlate: document.getElementById('licensePlate')?.value.trim() || ''
+  };
+}
+
+function getDocumentFormData() {
+  const catalogPrint = window.getCatalogPrintSelection ? window.getCatalogPrintSelection() : null;
+  const coverPeriod = updateCoverPeriod();
+  return {
+    territory: currentTerritory,
+    clientName: document.getElementById('clientName')?.value.trim() || '',
+    vehicle: {
+      make: catalogPrint?.make || document.getElementById('catalogMake')?.value || '',
+      model: catalogPrint?.model || document.getElementById('catalogModel')?.value || '',
+      year: catalogPrint?.year || document.getElementById('catalogYear')?.value || document.getElementById('vehYear')?.value || '',
+      insuredValue: parseFloat(document.getElementById('vehValue')?.value) || 0,
+      ...getVehicleDocumentDetails()
+    },
+    coverPeriod,
+    notes: document.getElementById('userNotes')?.value.trim() || ''
+  };
+}
+window.getDocumentFormData = getDocumentFormData;
 
 let noOverride = false;
 function toggleOverride() {
@@ -1828,6 +2072,32 @@ function calculate() {
 
   // ── TOTAL ──
   const totalPremium = round2(netPremium + sys.policyfee + govTaxAmt + govVATAmt + nrsaAmt + rssFeeAmt);
+  window.lastPremiumResult = {
+    coverage,
+    coverageLabel: coverageLabel(coverage, covData),
+    periodCode,
+    periodLabel,
+    vehUse,
+    vehUseLabel: document.getElementById('vehUse')?.selectedOptions?.[0]?.textContent || vehUse,
+    vehType,
+    vehYear,
+    basicPremium,
+    rateUpAmt,
+    ncdAmt,
+    discountPremium,
+    grossPremium,
+    passLiabAmt,
+    extraCoverages,
+    campaignAmt,
+    netPremium,
+    policyFee: sys.policyfee,
+    govTaxAmt,
+    govVATAmt,
+    rssFeeAmt,
+    nrsaAmt,
+    totalPremium,
+    minPremApplied
+  };
 
   // ── RENDER ──
   document.getElementById('emptyState').classList.add('hidden');
@@ -1870,16 +2140,21 @@ function calculate() {
     document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' PremVar row was found for the selected vehicle use and coverage.';
   }
 
-  // Print header card — client name + date
-  const clientName = document.getElementById('clientName').value.trim();
-  const userNotes  = document.getElementById("userNotes").value.trim();
-  const catalogPrint = window.getCatalogPrintSelection ? window.getCatalogPrintSelection() : null;
-  const catalogMake = catalogPrint?.make || document.getElementById("catalogMake")?.value || "";
-  const catalogModel = catalogPrint?.model || document.getElementById("catalogModel")?.value || "";
-  const catalogYear = catalogPrint?.year || document.getElementById("catalogYear")?.value || "";
+  // Print header card — client, vehicle and cover note details
+  const documentData = getDocumentFormData();
+  const clientName = documentData.clientName;
+  const userNotes  = documentData.notes;
+  const catalogMake = documentData.vehicle.make;
+  const catalogModel = documentData.vehicle.model;
+  const catalogYear = documentData.vehicle.year;
   const printMake = catalogMake || "—";
   const printModel = catalogModel || "—";
   const printYear = catalogYear || String(vehYear || "—");
+  const vehicleDetails = [
+    documentData.vehicle.color ? 'Color: ' + documentData.vehicle.color : '',
+    documentData.vehicle.vin ? 'VIN: ' + documentData.vehicle.vin : '',
+    documentData.vehicle.licensePlate ? 'Plate: ' + documentData.vehicle.licensePlate : ''
+  ].filter(Boolean).join(' / ');
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
   const timeStr = now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
@@ -1891,7 +2166,9 @@ function calculate() {
   document.getElementById('phcDate').textContent    = printDateStr;
   document.getElementById("phcTerritory").textContent = currentTerritory.name;
   document.getElementById("phcVehicle").textContent = printMake + " / " + printModel + " / " + printYear;
+  document.getElementById("phcVehicleDetails").textContent = vehicleDetails || '—';
   document.getElementById("phcInsuredValue").textContent = cur + " " + fmt(vehValue);
+  document.getElementById("phcCoverPeriod").textContent = documentData.coverPeriod.display || '—';
   document.getElementById('printFooterTerritory').textContent = currentTerritory.name + ' (' + currentTerritory.code + ')';
   document.getElementById('printDate').textContent   = fullDateTime;
 
@@ -1989,6 +2266,61 @@ function calculate() {
     document.getElementById('printDate').textContent = d.toLocaleDateString('en-GB', {day:'2-digit',month:'short',year:'numeric'}) + ' ' + d.toLocaleTimeString('en-GB',{hour:'2-digit',minute:'2-digit'});
     window.print();
   }
+
+  function setQuoteText(id, value) {
+    const el = document.getElementById(id);
+    if (el) el.textContent = value || '—';
+  }
+
+  function money(value) {
+    return currentTerritory.currency + ' ' + fmt(value || 0);
+  }
+
+  function populateQuotePrint() {
+    calculate();
+    const data = getDocumentFormData();
+    const result = window.lastPremiumResult || {};
+    const now = new Date();
+    const quoteNo = currentTerritory.code + '-' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '-' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
+
+    setQuoteText('quoteTerritory', currentTerritory.name + ' (' + currentTerritory.code + ')');
+    setQuoteText('quoteDate', formatDisplayDate(now));
+    setQuoteText('quoteNumber', quoteNo);
+    setQuoteText('quoteClientName', data.clientName);
+    setQuoteText('quoteCoverPeriod', data.coverPeriod.display);
+    setQuoteText('quoteMake', data.vehicle.make);
+    setQuoteText('quoteModel', data.vehicle.model);
+    setQuoteText('quoteYear', data.vehicle.year);
+    setQuoteText('quoteColor', data.vehicle.color);
+    setQuoteText('quoteVin', data.vehicle.vin);
+    setQuoteText('quotePlate', data.vehicle.licensePlate);
+    setQuoteText('quoteVehicleUse', result.vehUseLabel || result.vehUse);
+    setQuoteText('quoteVehicleType', result.vehType);
+    setQuoteText('quoteInsuredValue', money(data.vehicle.insuredValue));
+    setQuoteText('quoteCoverage', result.coverageLabel || result.coverage);
+    setQuoteText('quotePolicyPeriod', result.periodLabel || document.getElementById('period')?.selectedOptions?.[0]?.textContent || 'Annual');
+    setQuoteText('quoteBasicPremium', money(result.discountPremium ?? result.basicPremium));
+    setQuoteText('quoteNcd', result.ncdAmt ? '-' + money(result.ncdAmt) : money(0));
+    setQuoteText('quoteNetPremium', money(result.netPremium));
+    setQuoteText('quotePolicyFee', money(result.policyFee));
+    setQuoteText('quoteTaxes', money((result.govTaxAmt || 0) + (result.govVATAmt || 0)));
+    setQuoteText('quoteFees', money((result.rssFeeAmt || 0) + (result.nrsaAmt || 0)));
+    setQuoteText('quoteTotalPremium', money(result.totalPremium));
+    setQuoteText('quoteNotes', data.notes);
+  }
+
+  function clearQuotePrintMode() {
+    document.body.classList.remove('quote-print-mode');
+  }
+
+  function printQuote() {
+    populateQuotePrint();
+    document.body.classList.add('quote-print-mode');
+    setTimeout(() => window.print(), 50);
+    setTimeout(clearQuotePrintMode, 1000);
+  }
+
+  window.addEventListener('afterprint', clearQuotePrintMode);
 
   
 
@@ -2180,6 +2512,7 @@ function selectTerritory(code) {
 
 // Run on load — attach territory backdrop listener after DOM is ready, then calculate
 window.addEventListener('load', () => {
+  updateCoverPeriod();
   updateTerritoryDisplay();
   document.getElementById('territoryOverlay').addEventListener('click', function(e) {
     if (e.target === this) closeTerritoryPicker();
