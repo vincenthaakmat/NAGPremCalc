@@ -84,12 +84,37 @@
     border-radius: 6px;
     letter-spacing: 0.06em;
   }
+  .territory-picker {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 4px 6px 4px 8px;
+    background: rgba(255,255,255,0.14);
+    border: 1px solid rgba(245,192,90,0.75);
+    border-radius: 8px;
+    box-shadow: 0 1px 8px rgba(0,0,0,0.18);
+  }
+  .territory-label {
+    color: white;
+    font-size: 10px;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
   .territory-select {
-    height: 30px;
+    height: 34px;
+    min-width: 180px;
     cursor: pointer;
     outline: none;
+    background: var(--gold-lite);
+    color: var(--navy);
+    border-color: var(--gold-lite);
+    font-weight: 700;
   }
-  .territory-select option { color: var(--text); }
+  .territory-select:focus {
+    box-shadow: 0 0 0 3px rgba(245,192,90,0.32);
+  }
+  .territory-select option { color: var(--text); background: white; }
   .territory-flag {
     width: 42px;
     height: 28px;
@@ -138,6 +163,14 @@
     background-color: #418fde;
   }
   .flag-aru::after { content: none; }
+  .flag-smd {
+    background-image: url("data/SMD_flag.png"), url("data/SMD_Flag.png");
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #fff;
+  }
+  .flag-smd::after { content: none; }
 
   /* ─── LAYOUT ─────────────────────────────────────── */
   .app-body {
@@ -771,12 +804,14 @@
     </div>
     Vehicle Premium Calculator
   </div>
-  <div style="display:flex;align-items:center;gap:10px;">
+  <div class="territory-picker">
+    <span class="territory-label">Territory</span>
     <span id="territoryFlag" class="territory-flag flag-cur" role="img" aria-label="Curaçao flag" title="Curaçao"></span>
     <select id="territorySelect" class="territory-select" onchange="selectTerritory(this.value)">
-      <option value="CUR" selected>CUR · Curaçao</option>
-      <option value="BON">BON · Bonaire</option>
       <option value="ARU">ARU · Aruba</option>
+      <option value="BON">BON · Bonaire</option>
+      <option value="CUR" selected>CUR · Curaçao</option>
+      <option value="SMD">SMD · Sint Maarten</option>
     </select>
     <span id="headerCurrency" style="color:var(--gold-lite);font-size:12px;font-family:var(--mono);">XCG</span>
   </div>
@@ -1567,6 +1602,11 @@ function calculate() {
         basicPremium = round2(basicPremium + scAmt);
         steps.push({ label: `  + Super Cover surcharge (${(covData.replacementvalue*100).toFixed(0)}%)`, amount: scAmt, running: basicPremium, type: 'positive' });
       }
+      if (currentTerritory.code === 'ARU' && ['C', 'SC', 'TPC'].includes(coverage)) {
+        const aruRateUpAmt = round2(basicPremium * 0.09);
+        basicPremium = round2(basicPremium + aruRateUpAmt);
+        steps.push({ label: 'ARU automatic rate up (9%)', amount: aruRateUpAmt, running: basicPremium, type: 'positive' });
+      }
     }
 
     // Rate increase from CompRateUpdates (assumed 0 here — flag for dev)
@@ -1768,8 +1808,10 @@ function calculate() {
   } else {
     steps.push({ label: `VAT (${currentTerritory.code} = 0%)`, amount: 0, running: null, type: 'neutral', zero: true });
   }
-  // RSS Fee: ARU uses PremVar.RSS_Fee when available; other territories use Sys fallback.
-  const territoryRssFee = currentTerritory.code === 'ARU' ? (pv.rssFee || sys.rssFee || 0) : (sys.rssFee || 0);
+  // RSS Fee: ARU only charges RSS on Third Party; other territories use Sys fallback.
+  const territoryRssFee = currentTerritory.code === 'ARU'
+    ? (coverage === 'TP' ? (pv.rssFee || sys.rssFee || 0) : 0)
+    : (sys.rssFee || 0);
   const rssFeeAmt = noRssFee ? 0 : territoryRssFee;
   if (rssFeeAmt > 0) {
     steps.push({ label: `RSS Fee`, amount: rssFeeAmt, running: null, type: 'positive' });
@@ -1949,7 +1991,7 @@ const TERRITORIES = [
   { code: 'ARU', name: 'Aruba',               engine: 'GetPremRateABC',    currency: 'AWG', currencyName: 'Aruban Florin', active: true },
   { code: 'BON', name: 'Bonaire',             engine: 'GetPremRateABC',    currency: 'USD', currencyName: 'United States Dollar', active: true  },
   { code: 'CUR', name: 'Curaçao',             engine: 'GetPremRateABC',    currency: 'XCG', currencyName: 'Caribbean Guilder', active: true  },
-  { code: 'SMD', name: 'Sint Maarten (Dutch)',engine: 'GetPremRateSMD',    currency: 'XCG', active: false },
+  { code: 'SMD', name: 'Sint Maarten',        engine: 'GetPremRateSMD',    currency: 'US$', currencyName: 'United States Dollar', active: true  },
   { code: 'SMF', name: 'Saint Martin (French)',engine:'GetPremRateSMF',    currency: 'EUR', active: false },
   { code: 'SAB', name: 'Saba',                engine: 'GetPremRateSEM',    currency: 'USD', active: false },
   { code: 'EUX', name: 'St. Eustatius',       engine: 'GetPremRateSEM',    currency: 'USD', active: false },
@@ -2068,7 +2110,8 @@ function updateVehicleTypeOptions() {
 
 function updateTerritoryDisplay() {
   window.currentTerritory = currentTerritory;
-  RATES = currentTerritory.code === 'ARU' && window.ARU_RATES ? window.ARU_RATES :
+  RATES = currentTerritory.code === 'SMD' && window.SMD_RATES ? window.SMD_RATES :
+          currentTerritory.code === 'ARU' && window.ARU_RATES ? window.ARU_RATES :
           currentTerritory.code === 'BON' && window.BON_RATES ? window.BON_RATES : CUR_RATES;
   const territorySelect = document.getElementById('territorySelect');
   if (territorySelect) territorySelect.value = currentTerritory.code;
