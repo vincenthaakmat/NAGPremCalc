@@ -179,6 +179,14 @@
     background-color: #66c7f4;
   }
   .flag-slu::after { content: none; }
+  .flag-gre {
+    background-image: url("data/GRE_Flag.svg");
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #ce1126;
+  }
+  .flag-gre::after { content: none; }
 
   /* ─── LAYOUT ─────────────────────────────────────── */
   .app-body {
@@ -877,6 +885,7 @@
       <option value="ARU">ARU · Aruba</option>
       <option value="BON">BON · Bonaire</option>
       <option value="CUR" selected>CUR · Curaçao</option>
+      <option value="GRE">GRE · Grenada</option>
       <option value="SLU">SLU · St Lucia</option>
       <option value="SMD">SMD · Sint Maarten</option>
     </select>
@@ -1509,6 +1518,7 @@
 <script src="data/bon-rates.js"></script>
 <script src="data/aru-rates.js"></script>
 <script src="data/slu-rates.js"></script>
+<script src="data/gre-rates.js"></script>
 <script>
 // ─── RATE TABLES — CUR database export (all tables) ─────────────────────────
 let RATES = {
@@ -1709,6 +1719,35 @@ function getSluComprehensiveRate(vehUse) {
       || null;
 }
 
+function isEcDollarRoundingTerritory() {
+  return ['SLU', 'GRE'].includes(currentTerritory.code);
+}
+
+function getGreComprehensiveRate(vehUse, vehicleValue, objectCategory) {
+  const rows = RATES.comprehensiveRate || [];
+  const category = objectCategory || vehUse;
+  return rows.find(r => String(r.objectCategory) === String(category)
+      && Number(r.rangeFrom || 0) <= vehicleValue
+      && Number(r.rangeTo || 0) >= vehicleValue)
+      || rows.find(r => String(r.objectCategory) === String(category))
+      || null;
+}
+
+function getGreThirdPartyRate(vehUse, engineSize) {
+  const rows = RATES.thirdPartyRates || [];
+  const engine = String(engineSize || '');
+  const engineLabel = engineSizeLabel(engine);
+  const matchesUse = rows.filter(r => r.ratesCategorie === vehUse);
+  return matchesUse.find(r => String(r.objectCategorie) === engine)
+      || matchesUse.find(r => String(r.objectCategorie).toLowerCase() === engineLabel.toLowerCase())
+      || matchesUse.find(r => String(r.objectCategorie).toLowerCase().includes('less') && Number(engine) <= 1999)
+      || matchesUse.find(r => String(r.objectCategorie).toLowerCase().includes('over') && Number(engine) >= 2000)
+      || matchesUse.find(r => String(r.objectCategorie).toLowerCase().includes('1600') && Number(engine) <= 1600)
+      || matchesUse.find(r => String(r.objectCategorie).toLowerCase().includes('1600') && Number(engine) > 1600)
+      || matchesUse.find(r => String(r.objectCategorie).toUpperCase() === 'ALL')
+      || matchesUse[0]
+      || null;
+}
 function getPremVar(vehUse, coverage) {
   return RATES.premVarTable[vehUse+'_'+coverage]
       || RATES.premVarTable[vehUse+'_C']
@@ -1857,7 +1896,6 @@ function calculate() {
   const steps = [];
   let notices = { aald: false, minPrem: false, fleetCap: false, missingCoverageRate: false, missingVehicleUse: false, missingPremVar: false };
 
-  // ── INPUTS ──
   const coverage    = document.getElementById('coverage').value;
   const periodCode  = document.getElementById('period').value;
   const isShort     = periodCode === 'SHORT';
@@ -1867,7 +1905,6 @@ function calculate() {
   const vehType     = document.getElementById('vehType').value;
   const vehYear     = parseInt(document.getElementById('vehYear').value) || 2015;
   const engSize     = document.getElementById('engSize')?.value || '';
-  const sex         = document.getElementById('sex').value;
   const ageCat      = parseInt(document.getElementById('ageCat').value);
   const driverExp   = parseInt(document.getElementById('driverExp').value);
   const ncdPct      = parseFloat(document.getElementById('ncd').value) || 0;
@@ -1892,11 +1929,10 @@ function calculate() {
   const pv = getPremVar(vehUse, coverage);
   if (!RATES.nVehUse[vehUse]) notices.missingVehicleUse = true;
   if (pv.missing) notices.missingPremVar = true;
-  const covData = RATES.coverage[coverage] || RATES.coverage["C"];
-  const sys         = RATES.sys;
-  const cur         = currentTerritory.currency;
+  const covData = RATES.coverage[coverage] || RATES.coverage['C'] || {};
+  const sys = RATES.sys || {};
+  const cur = currentTerritory.currency;
 
-  // ── STEP 1: BASIC PREMIUM ──
   let basicPremium = 0;
   let addTPL = 0;
   let rateUpAmt = 0;
@@ -1904,236 +1940,236 @@ function calculate() {
   if (noOverride) {
     basicPremium = parseFloat(document.getElementById('manualBasic').value) || 0;
     steps.push({ label: 'Basic Premium (manual override)', amount: basicPremium, running: basicPremium, type: 'neutral' });
-  } else {
-    if (currentTerritory.code === 'SLU') {
-      if (coverage === 'C') {
-        if (rental) {
-          const rentalPerc = pv.rentalperc || 0;
-          if (rentalPerc <= 0) notices.missingCoverageRate = true;
-          basicPremium = round2(vehValue * rentalPerc / 100);
-          steps.push({ label: `Basic Premium - SLU rental comprehensive (${cur} ${fmt(vehValue)} x ${rentalPerc}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
-        } else {
-          const compRate = getSluComprehensiveRate(vehUse);
-          if (!compRate) notices.missingCoverageRate = true;
-          const plusCat = compRate ? Number(compRate.plusCat) : 0;
-          basicPremium = round2(vehValue * plusCat / 100);
-          steps.push({ label: `Basic Premium - SLU comprehensive PlusCat (${cur} ${fmt(vehValue)} x ${plusCat}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+  } else if (currentTerritory.code === 'GRE') {
+    const minBasic = Number(pv.charge || 0);
+    if (coverage !== 'T') {
+      if (coverage === 'TF') {
+        const tfRate = vehValue > 50000 ? 0.05 : 0.045;
+        basicPremium = round2(vehValue * tfRate);
+        steps.push({ label: `Basic Premium - GRE TP Fire/Theft (${cur} ${fmt(vehValue)} x ${(tfRate * 100).toFixed(2)}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+      } else {
+        const compRate = getGreComprehensiveRate(vehUse, vehValue);
+        if (!compRate || Number(compRate.premiumAmount || 0) <= 0) notices.missingCoverageRate = true;
+        const compPercent = compRate ? Number(compRate.premiumAmount || 0) : 0;
+        basicPremium = round2(vehValue * compPercent / 100);
+        steps.push({ label: `Basic Premium - GRE comprehensive rate (${vehUse}, ${cur} ${fmt(vehValue)} x ${compPercent}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+        if (rental && pv.rentalperc > 0) {
+          const rentalAmt = round2(basicPremium * pv.rentalperc / 100);
+          basicPremium = round2(basicPremium + rentalAmt);
+          steps.push({ label: `GRE rental surcharge (${pv.rentalperc}%)`, amount: rentalAmt, running: basicPremium, type: 'positive' });
         }
-      } else if (coverage === 'TF') {
-        const tpRate = getSluThirdPartyRate(vehUse, engSize);
-        if (!tpRate || !tpRate.age) notices.missingCoverageRate = true;
-        const ageRate = tpRate ? Number(tpRate.age) : 0;
-        basicPremium = round2(vehValue * ageRate / 100);
-        steps.push({ label: `Basic Premium - SLU third party fire/theft (${cur} ${fmt(vehValue)} x ${ageRate}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
-      } else if (coverage === 'T') {
-        const tpRate = getSluThirdPartyRate(vehUse, engSize);
-        if (!tpRate) notices.missingCoverageRate = true;
-        basicPremium = round2(tpRate ? tpRate.amount : 0);
-        steps.push({ label: `Basic Premium - SLU third party table (${vehUse}, engine ${engSize})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
-      } else if (coverage === 'TP' || coverage === 'LAR') {
-        basicPremium = getAbcTpPremium(vehValue, coverage, vehUse, vehType);
-        const tpBand = getAbcTpBand(vehValue, coverage, vehUse, vehType);
-        steps.push({ label: `Basic Premium - TP table (TOSUMINS >= ${fmt(vehValue)} -> band TOSUMINS ${fmt(tpBand.to)} -> ${cur} ${fmt(tpBand.premium)})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
-      }
-
-      let sluDriverLoad = 0;
-      let sluDriverLabel = '';
-      if (driverExp === 0 && ageCat <= 25) { sluDriverLoad = 50; sluDriverLabel = 'SLU inexperienced under-25 driver'; }
-      else if (driverExp === 1 && ageCat <= 25) { sluDriverLoad = 35; sluDriverLabel = 'SLU one-year under-25 driver'; }
-      else if (driverExp === 0) { sluDriverLoad = 35; sluDriverLabel = 'SLU inexperienced driver'; }
-      if (sluDriverLoad > 0) {
-        const licAmt = round2(basicPremium * sluDriverLoad / 100);
-        basicPremium = round2(basicPremium + licAmt);
-        steps.push({ label: `${sluDriverLabel} (${sluDriverLoad}%)`, amount: licAmt, running: basicPremium, type: 'positive' });
-      }
-    } else if (coverage === 'TP' || coverage === 'LAR') {
-      basicPremium = getAbcTpPremium(vehValue, coverage, vehUse, vehType);
-      const tpBand = getAbcTpBand(vehValue, coverage, vehUse, vehType);
-      steps.push({ label: `Basic Premium - TP table (TOSUMINS >= ${fmt(vehValue)} -> band TOSUMINS ${fmt(tpBand.to)} -> ${cur} ${fmt(tpBand.premium)})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
-      const nvu = RATES.nVehUse[vehUse];
-      const nvuLoad = nvu ? nvu.loadperc : 0;
-      if (nvuLoad > 0) {
-        const nvuAmt = round2(basicPremium * nvuLoad);
-        basicPremium = round2(basicPremium + nvuAmt);
-        steps.push({ label: `  + Vehicle use surcharge (${nvu.label}: ${nvuLoad*100}%)`, amount: nvuAmt, running: basicPremium, type: 'positive' });
       }
     } else {
-      const loadperc = covData.loadperc || 0;
-      if (loadperc <= 0) notices.missingCoverageRate = true;
-      basicPremium = round2(vehValue * loadperc);
-      const loadPercDecimals = currentTerritory.code === 'ARU' ? 14 : 2;
-      steps.push({ label: `Basic Premium - ${covData.name} (${cur} ${fmt(vehValue)} x ${(loadperc*100).toFixed(loadPercDecimals)}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
-      const nvu = RATES.nVehUse[vehUse];
-      const nvuLoad = nvu ? nvu.loadperc : 0;
-      if (nvuLoad > 0) {
-        const nvuAmt = round2(basicPremium * nvuLoad);
-        basicPremium = round2(basicPremium + nvuAmt);
-        steps.push({ label: `  + Vehicle use surcharge (${nvu.label}: ${nvuLoad*100}%)`, amount: nvuAmt, running: basicPremium, type: 'positive' });
-      }
-      if (currentTerritory.code === 'ARU' && coverage === 'TPC' && newVeh) {
-        const aruTpcAmt = round2(basicPremium * 0.05);
-        basicPremium = round2(basicPremium + aruTpcAmt);
-        steps.push({ label: 'ARU TPC new vehicle increase (5%)', amount: aruTpcAmt, running: basicPremium, type: 'positive' });
-      }
-      if (coverage === 'SC') {
-        const scAmt = round2(basicPremium * covData.replacementvalue);
-        basicPremium = round2(basicPremium + scAmt);
-        steps.push({ label: `  + Super Cover surcharge (${(covData.replacementvalue*100).toFixed(0)}%)`, amount: scAmt, running: basicPremium, type: 'positive' });
-      }
-      if (currentTerritory.code === 'ARU' && ['C', 'SC', 'TPC'].includes(coverage)) {
-        const aruRateUpAmt = round2(basicPremium * 0.09);
-        basicPremium = round2(basicPremium + aruRateUpAmt);
-        steps.push({ label: 'ARU automatic rate up (9%)', amount: aruRateUpAmt, running: basicPremium, type: 'positive' });
-      }
+      const tpRate = getGreThirdPartyRate(vehUse, engSize);
+      if (!tpRate) notices.missingCoverageRate = true;
+      basicPremium = round2(tpRate ? tpRate.amount : 0);
+      steps.push({ label: `Basic Premium - GRE third party table (${vehUse}, engine ${engSize})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
     }
-    // Rate increase from CompRateUpdates (assumed 0 here — flag for dev)
-    steps.push({ label: 'Rate increase (CompRateUpdates) — query DB live', amount: 0, running: basicPremium, type: 'neutral', zero: true });
+    if (basicPremium < minBasic && minBasic > 0) {
+      basicPremium = minBasic;
+      steps.push({ label: `GRE minimum basic premium applied (${cur} ${fmt(minBasic)})`, amount: null, running: basicPremium, type: 'subtotal' });
+    }
+  } else if (currentTerritory.code === 'SLU') {
+    if (coverage === 'C') {
+      if (rental) {
+        const rentalPerc = pv.rentalperc || 0;
+        if (rentalPerc <= 0) notices.missingCoverageRate = true;
+        basicPremium = round2(vehValue * rentalPerc / 100);
+        steps.push({ label: `Basic Premium - SLU rental comprehensive (${cur} ${fmt(vehValue)} x ${rentalPerc}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+      } else {
+        const compRate = getSluComprehensiveRate(vehUse);
+        if (!compRate) notices.missingCoverageRate = true;
+        const plusCat = compRate ? Number(compRate.plusCat) : 0;
+        basicPremium = round2(vehValue * plusCat / 100);
+        steps.push({ label: `Basic Premium - SLU comprehensive PlusCat (${cur} ${fmt(vehValue)} x ${plusCat}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+      }
+    } else if (coverage === 'TF') {
+      const tpRate = getSluThirdPartyRate(vehUse, engSize);
+      if (!tpRate || !tpRate.age) notices.missingCoverageRate = true;
+      const ageRate = tpRate ? Number(tpRate.age) : 0;
+      basicPremium = round2(vehValue * ageRate / 100);
+      steps.push({ label: `Basic Premium - SLU third party fire/theft (${cur} ${fmt(vehValue)} x ${ageRate}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+    } else if (coverage === 'T') {
+      const tpRate = getSluThirdPartyRate(vehUse, engSize);
+      if (!tpRate) notices.missingCoverageRate = true;
+      basicPremium = round2(tpRate ? tpRate.amount : 0);
+      steps.push({ label: `Basic Premium - SLU third party table (${vehUse}, engine ${engSize})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+    }
+    let sluDriverLoad = 0;
+    let sluDriverLabel = '';
+    if (driverExp === 0 && ageCat <= 25) { sluDriverLoad = 50; sluDriverLabel = 'SLU inexperienced under-25 driver'; }
+    else if (driverExp === 1 && ageCat <= 25) { sluDriverLoad = 35; sluDriverLabel = 'SLU one-year under-25 driver'; }
+    else if (driverExp === 0) { sluDriverLoad = 35; sluDriverLabel = 'SLU inexperienced driver'; }
+    if (sluDriverLoad > 0) {
+      const licAmt = round2(basicPremium * sluDriverLoad / 100);
+      basicPremium = round2(basicPremium + licAmt);
+      steps.push({ label: `${sluDriverLabel} (${sluDriverLoad}%)`, amount: licAmt, running: basicPremium, type: 'positive' });
+    }
+  } else if (coverage === 'TP' || coverage === 'LAR') {
+    basicPremium = getAbcTpPremium(vehValue, coverage, vehUse, vehType);
+    const tpBand = getAbcTpBand(vehValue, coverage, vehUse, vehType);
+    steps.push({ label: `Basic Premium - TP table (TOSUMINS >= ${fmt(vehValue)} -> band TOSUMINS ${fmt(tpBand.to)} -> ${cur} ${fmt(tpBand.premium)})`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+    const nvu = RATES.nVehUse[vehUse];
+    const nvuLoad = nvu ? nvu.loadperc : 0;
+    if (nvuLoad > 0) {
+      const nvuAmt = round2(basicPremium * nvuLoad);
+      basicPremium = round2(basicPremium + nvuAmt);
+      steps.push({ label: `  + Vehicle use surcharge (${nvu.label}: ${nvuLoad * 100}%)`, amount: nvuAmt, running: basicPremium, type: 'positive' });
+    }
+  } else {
+    const loadperc = covData.loadperc || 0;
+    if (loadperc <= 0) notices.missingCoverageRate = true;
+    basicPremium = round2(vehValue * loadperc);
+    const loadPercDecimals = currentTerritory.code === 'ARU' ? 14 : 2;
+    steps.push({ label: `Basic Premium - ${covData.name || coverage} (${cur} ${fmt(vehValue)} x ${(loadperc * 100).toFixed(loadPercDecimals)}%)`, amount: basicPremium, running: basicPremium, type: 'neutral' });
+    const nvu = RATES.nVehUse[vehUse];
+    const nvuLoad = nvu ? nvu.loadperc : 0;
+    if (nvuLoad > 0) {
+      const nvuAmt = round2(basicPremium * nvuLoad);
+      basicPremium = round2(basicPremium + nvuAmt);
+      steps.push({ label: `  + Vehicle use surcharge (${nvu.label}: ${nvuLoad * 100}%)`, amount: nvuAmt, running: basicPremium, type: 'positive' });
+    }
+    if (currentTerritory.code === 'ARU' && coverage === 'TPC' && newVeh) {
+      const aruTpcAmt = round2(basicPremium * 0.05);
+      basicPremium = round2(basicPremium + aruTpcAmt);
+      steps.push({ label: 'ARU TPC new vehicle increase (5%)', amount: aruTpcAmt, running: basicPremium, type: 'positive' });
+    }
+    if (coverage === 'SC') {
+      const scAmt = round2(basicPremium * (covData.replacementvalue || 0));
+      basicPremium = round2(basicPremium + scAmt);
+      steps.push({ label: `  + Super Cover surcharge (${((covData.replacementvalue || 0) * 100).toFixed(0)}%)`, amount: scAmt, running: basicPremium, type: 'positive' });
+    }
+    if (currentTerritory.code === 'ARU' && ['C', 'SC', 'TPC'].includes(coverage)) {
+      const aruRateUpAmt = round2(basicPremium * 0.09);
+      basicPremium = round2(basicPremium + aruRateUpAmt);
+      steps.push({ label: 'ARU automatic rate up (9%)', amount: aruRateUpAmt, running: basicPremium, type: 'positive' });
+    }
   }
+  steps.push({ label: 'Rate increase (CompRateUpdates) - query DB live', amount: 0, running: basicPremium, type: 'neutral', zero: true });
 
-  // ── STEP 2: RATE UP & VEHICLE AGE ──
   let tmp = basicPremium;
-
   if (rateUpPct > 0) {
     rateUpAmt = round2(basicPremium * rateUpPct / 100);
-    steps.push({ label: `Rate Up (${rateUpPct}%)`, amount: rateUpAmt, running: tmp + rateUpAmt, type: 'positive' });
     tmp = round2(tmp + rateUpAmt);
+    steps.push({ label: `Rate Up (${rateUpPct}%)`, amount: rateUpAmt, running: tmp, type: 'positive' });
   } else {
     steps.push({ label: 'Rate Up (0%)', amount: 0, running: tmp, type: 'neutral', zero: true });
   }
-
   steps.push({ label: 'Sub-total (BasicPremium + RateUp)', amount: null, running: tmp, type: 'subtotal', sublabel: true });
 
-  // ── STEP 3: LOADINGS ──
   if (!rental) {
-    if (currentTerritory.code === 'SLU') {
+    if (currentTerritory.code === 'SLU' || currentTerritory.code === 'GRE') {
       if (aald) {
         const aaldAmt = round2(tmp * pv.aald / 100);
-        steps.push({ label: `AALD surcharge (${pv.aald}%)`, amount: aaldAmt, running: round2(tmp + aaldAmt), type: 'positive' });
         tmp = round2(tmp + aaldAmt);
+        steps.push({ label: `AALD surcharge (${pv.aald}%)`, amount: aaldAmt, running: tmp, type: 'positive' });
       } else {
         steps.push({ label: 'AALD (not selected)', amount: 0, running: tmp, type: 'neutral', zero: true });
       }
-      if (forLic) {
-        steps.push({ label: 'Foreign License (not used by SLU engine)', amount: 0, running: tmp, type: 'neutral', zero: true });
-      }
+      if (forLic) steps.push({ label: `Foreign License (not used by ${currentTerritory.code} engine)`, amount: 0, running: tmp, type: 'neutral', zero: true });
     } else {
-      // AALD auto for commercial uses
       const commercialUses = ['BS','CM','HD','TX','RN','TB'];
       let effectiveAALD = aald || commercialUses.includes(vehUse);
       if (commercialUses.includes(vehUse) && !aald) notices.aald = true;
-
       if (effectiveAALD && driverExp >= 3) {
         const aaldAmt = round2(tmp * pv.aald / 100);
-        steps.push({ label: `AALD surcharge (${pv.aald}%) - any authorised licensed driver`, amount: aaldAmt, running: round2(tmp + aaldAmt), type: 'positive' });
         tmp = round2(tmp + aaldAmt);
+        steps.push({ label: `AALD surcharge (${pv.aald}%) - any authorised licensed driver`, amount: aaldAmt, running: tmp, type: 'positive' });
       } else if (driverExp < 2) {
         const licAmt = round2(tmp * pv.licexp / 100);
-        steps.push({ label: `Inexperienced driver surcharge (${pv.licexp}%)`, amount: licAmt, running: round2(tmp + licAmt), type: 'positive' });
         tmp = round2(tmp + licAmt);
+        steps.push({ label: `Inexperienced driver surcharge (${pv.licexp}%)`, amount: licAmt, running: tmp, type: 'positive' });
       } else {
         steps.push({ label: 'AALD / Inexp. Driver (not applicable)', amount: 0, running: tmp, type: 'neutral', zero: true });
       }
-
       if (forLic) {
         const flAmt = round2((tmp - addTPL) * pv.forlicense / 100);
-        steps.push({ label: `Foreign License surcharge (${pv.forlicense}%)`, amount: flAmt, running: round2(tmp + flAmt), type: 'positive' });
         tmp = round2(tmp + flAmt);
+        steps.push({ label: `Foreign License surcharge (${pv.forlicense}%)`, amount: flAmt, running: tmp, type: 'positive' });
       } else {
         steps.push({ label: 'Foreign License (not applicable)', amount: 0, running: tmp, type: 'neutral', zero: true });
       }
     }
   }
 
-  // ── STEP 3.5: ADD. TP LIABILITY ──
   if (!noOverride) {
     const liabFactor = parseFloat(liability) || 0;
     if (liabFactor > 0) {
-      const liabilityBase = currentTerritory.code === 'BON' || currentTerritory.code === 'CUR' || currentTerritory.code === 'ARU'
-        ? round2(basicPremium + rateUpAmt)
-        : basicPremium;
+      const liabilityBase = ['BON','CUR','ARU'].includes(currentTerritory.code) ? round2(basicPremium + rateUpAmt) : basicPremium;
       addTPL = round2(liabilityBase * liabFactor);
-      const liabEntry = RATES.liabilityVar.find(l => l.value === liabFactor) || {label: `+${liabFactor*100}%`};
-      steps.push({ label: `Add. TP Liability – ${liabEntry.label}`, amount: addTPL, running: round2(tmp + addTPL), type: 'positive' });
+      const liabEntry = RATES.liabilityVar.find(l => l.value === liabFactor) || { label: `+${liabFactor * 100}%` };
       tmp = round2(tmp + addTPL);
+      steps.push({ label: `Add. TP Liability - ${liabEntry.label}`, amount: addTPL, running: tmp, type: 'positive' });
     } else {
-      steps.push({ label: 'Add. TP Liability (standard – included in base)', amount: 0, running: tmp, type: 'neutral', zero: true });
+      steps.push({ label: 'Add. TP Liability (standard - included in base)', amount: 0, running: tmp, type: 'neutral', zero: true });
     }
   }
 
   if (toolsOfTrade > 0) {
-    steps.push({ label: 'Tools of Trade', amount: toolsOfTrade, running: round2(tmp + toolsOfTrade), type: 'positive' });
     tmp = round2(tmp + toolsOfTrade);
+    steps.push({ label: 'Tools of Trade', amount: toolsOfTrade, running: tmp, type: 'positive' });
   }
 
-  // ── STEP 4: DISCOUNTS ──
   const maxNcd = covData.maxncd || 60;
-  let fleetAmt = 0;
   if (fleet) {
     const combined = ncdPct + pv.fleetdisc;
     if (combined > maxNcd) {
       steps.push({ label: `Fleet Discount SUPPRESSED (NCD ${ncdPct}% + Fleet ${pv.fleetdisc}% = ${combined}% > max ${maxNcd}%)`, amount: 0, running: tmp, type: 'neutral', zero: true });
       notices.fleetCap = true;
     } else {
-      fleetAmt = round2(tmp * pv.fleetdisc / 100);
-      steps.push({ label: `Fleet Discount (${pv.fleetdisc}%)`, amount: -fleetAmt, running: round2(tmp - fleetAmt), type: 'negative' });
+      const fleetAmt = round2(tmp * pv.fleetdisc / 100);
       tmp = round2(tmp - fleetAmt);
+      steps.push({ label: `Fleet Discount (${pv.fleetdisc}%)`, amount: -fleetAmt, running: tmp, type: 'negative' });
     }
   }
-
   if (staff) {
     const staffRate = (masterAgentCode === 'NON' || masterAgentCode === 'EMP') ? pv.staffdisc : 20;
     const staffAmt = round2(tmp * staffRate / 100);
-    steps.push({ label: `Staff Discount (${staffRate}%)`, amount: -staffAmt, running: round2(tmp - staffAmt), type: 'negative' });
     tmp = round2(tmp - staffAmt);
+    steps.push({ label: `Staff Discount (${staffRate}%)`, amount: -staffAmt, running: tmp, type: 'negative' });
   }
-
   if (managDiscPct > 0) {
     const managAmt = round2(tmp * managDiscPct / 100);
-    steps.push({ label: `Management Discount (${managDiscPct}%)`, amount: -managAmt, running: round2(tmp - managAmt), type: 'negative' });
     tmp = round2(tmp - managAmt);
+    steps.push({ label: `Management Discount (${managDiscPct}%)`, amount: -managAmt, running: tmp, type: 'negative' });
   }
 
   const yearPremium = tmp;
   steps.push({ label: 'Year Premium', amount: null, running: yearPremium, type: 'subtotal', sublabel: true });
-
-  // ── STEP 5: PERIOD ADJUSTMENT ──
   let grossPremium = yearPremium;
-  let periodLabel = 'Annual (1Y) – no adjustment';
+  let periodLabel = 'Annual (1Y) - no adjustment';
   if (isShort) {
     grossPremium = round2(yearPremium * shortPerc / 100);
-    const spSel = document.getElementById('shortPeriodSelect'); periodLabel = `Short period – ${spSel.options[spSel.selectedIndex].text} (${shortPerc}%)`;
+    const spSel = document.getElementById('shortPeriodSelect');
+    periodLabel = `Short period - ${spSel.options[spSel.selectedIndex].text} (${shortPerc}%)`;
   } else if (periodCode === '6M') {
     grossPremium = round2(yearPremium * pv.halfyearly / 100);
     periodLabel = `6-Month rate (${pv.halfyearly}% of annual)`;
   } else if (periodCode === '1Q') {
     grossPremium = round2(yearPremium * pv.quarterly / 100);
     periodLabel = `Quarterly rate (${pv.quarterly}% of annual)`;
-  } else if (currentTerritory.code === 'SLU' && periodCode === '3M50') {
+  } else if (isEcDollarRoundingTerritory() && periodCode === '3M50') {
     grossPremium = round2(yearPremium * 0.4);
-    periodLabel = '3-Month SLU rate (40% of annual)';
-  } else if (currentTerritory.code === 'SLU' && periodCode === '9M50') {
+    periodLabel = `3-Month ${currentTerritory.code} rate (40% of annual)`;
+  } else if (isEcDollarRoundingTerritory() && periodCode === '9M50') {
     grossPremium = round2(yearPremium * 0.6);
-    periodLabel = '9-Month SLU rate (60% of annual)';
+    periodLabel = `9-Month ${currentTerritory.code} rate (60% of annual)`;
   } else if (periodCode === '3M50' || periodCode === '9M50') {
     grossPremium = round2(yearPremium / 2);
     periodLabel = `${periodCode} rate (50% of annual)`;
   }
-  if (periodCode !== '1Y' || isShort) {
-    steps.push({ label: `Period: ${periodLabel}`, amount: null, running: grossPremium, type: 'subtotal' });
-  }
+  if (periodCode !== '1Y' || isShort) steps.push({ label: `Period: ${periodLabel}`, amount: null, running: grossPremium, type: 'subtotal' });
 
-  // New vehicle discount (applied on GrossPremium)
   let nvdValue = 0;
-  if (newVeh) {
-    const nvdPerc = round2(100 - sys.newvehdisc * 100);
-    const effectiveNvd = Math.min(nvdPerc, maxNcd - ncdPct);
+  if (newVeh && Number(sys.newvehdisc || 0) > 0) {
+    const nvdPct = round2(100 - sys.newvehdisc * 100);
+    const effectiveNvd = Math.min(nvdPct, maxNcd - ncdPct);
     if (effectiveNvd > 0) {
       nvdValue = round2(grossPremium - round2(grossPremium * sys.newvehdisc));
       steps.push({ label: `New Vehicle Discount (${effectiveNvd}%)`, amount: -nvdValue, running: round2(grossPremium - nvdValue), type: 'negative' });
     }
   }
 
-  // ── STEP 6: NCD ──
   let ncdAmt = 0;
   if (ncdPct > 0) {
     ncdAmt = round2(grossPremium * ncdPct / 100);
@@ -2144,11 +2180,10 @@ function calculate() {
   const discountPremium = round2(grossPremium - ncdAmt);
   steps.push({ label: 'Discount Premium', amount: null, running: discountPremium, type: 'subtotal', sublabel: true });
 
-  // ── STEP 7: PASSENGERS & EXTRAS ──
   let passLiabAmt = 0;
   if (passSeats > 0) {
     passLiabAmt = round2(passSeats * pv.passliab);
-    if (currentTerritory.code === 'SLU') {
+    if (isEcDollarRoundingTerritory()) {
       if (isShort) passLiabAmt = round2(passLiabAmt * shortPerc / 100);
       else if (periodCode === '1Q') passLiabAmt = round2(passLiabAmt * pv.quarterly / 100);
       else if (periodCode === '3M50' || periodCode === '9M50') passLiabAmt = round2(passLiabAmt * 0.4);
@@ -2157,34 +2192,25 @@ function calculate() {
       if (periodCode === '6M' || periodCode === '3M50' || periodCode === '9M50') passLiabAmt = round2(passLiabAmt / 2);
       if (periodCode === '1Q') passLiabAmt = round2(passLiabAmt * pv.quarterly / 100);
     }
-    steps.push({ label: `Passenger Liability (${passSeats} seats × ${cur} ${pv.passliab.toFixed(2)})`, amount: passLiabAmt, running: null, type: 'positive' });
+    steps.push({ label: `Passenger Liability (${passSeats} seats x ${cur} ${pv.passliab.toFixed(2)})`, amount: passLiabAmt, running: null, type: 'positive' });
   }
 
   const extraCoverages = round2(extraCov + extraCov2);
-  if (extraCov > 0) {
-    steps.push({ label: 'Extra Coverage 1', amount: extraCov, running: null, type: 'positive' });
-  }
-  if (extraCov2 > 0) {
-    steps.push({ label: 'Extra Coverage 2', amount: extraCov2, running: null, type: 'positive' });
-  }
-
+  if (extraCov > 0) steps.push({ label: 'Extra Coverage 1', amount: extraCov, running: null, type: 'positive' });
+  if (extraCov2 > 0) steps.push({ label: 'Extra Coverage 2', amount: extraCov2, running: null, type: 'positive' });
   let campaignAmt = 0;
   if (campaigns > 0) {
     const campaignBase = round2(discountPremium - nvdValue + passLiabAmt + extraCoverages);
-    campaignAmt = campaignType === 'PCT'
-      ? round2(-Math.abs(campaignBase * campaigns / 100))
-      : round2(-Math.abs(campaigns));
+    campaignAmt = campaignType === 'PCT' ? round2(-Math.abs(campaignBase * campaigns / 100)) : round2(-Math.abs(campaigns));
     steps.push({ label: campaignType === 'PCT' ? `Campaign / Coupon (${campaigns}%)` : 'Campaign / Coupon', amount: campaignAmt, running: null, type: 'negative' });
   }
 
-  // ── STEP 8: NET PREMIUM ──
   let netPremium = round2(discountPremium - nvdValue + passLiabAmt + extraCoverages + campaignAmt);
-  if (currentTerritory.code === 'SLU') {
+  if (isEcDollarRoundingTerritory()) {
     netPremium = round005(netPremium);
-    steps.push({ label: 'SLU EC$ net premium rounding (nearest 0.05)', amount: null, running: netPremium, type: 'subtotal' });
+    steps.push({ label: `${currentTerritory.code} EC$ net premium rounding (nearest 0.05)`, amount: null, running: netPremium, type: 'subtotal' });
   }
 
-  // Minimum premium check
   let minPremApplied = false;
   const minPrem = getMinimumPremium(polType, coverage, vehUse);
   let minPremThreshold = minPrem;
@@ -2197,162 +2223,72 @@ function calculate() {
     notices.minPrem = true;
     steps.push({ label: `Minimum premium floor applied (${cur} ${fmt(minPremThreshold)})`, amount: null, running: netPremium, type: 'subtotal' });
   }
-
   steps.push({ label: 'Net Premium', amount: null, running: netPremium, type: 'subtotal', sublabel: true });
 
-  // ── STEP 9: FEES ──
-  const policyFeeAmt = currentTerritory.code === 'SLU' ? round005(sys.policyfee) : sys.policyfee;
+  const policyFeeAmt = isEcDollarRoundingTerritory() ? round005(sys.policyfee) : sys.policyfee;
   steps.push({ label: `Policy Fee (${currentTerritory.code} Sys table)`, amount: policyFeeAmt, running: null, type: 'positive' });
   const govTaxRate = (currentTerritory.code === 'ARU' && coverage === 'TP') ? 0 : sys.govTax;
-  const govTaxAmt = currentTerritory.code === 'SLU' ? round005(netPremium * govTaxRate) : round2((netPremium + policyFeeAmt) * govTaxRate);
-  const govVATAmt = currentTerritory.code === 'SLU' ? round005((netPremium + policyFeeAmt + govTaxAmt) * sys.govVAT) : round2((netPremium + policyFeeAmt + govTaxAmt) * sys.govVAT);
-  if (govTaxAmt > 0) {
-    steps.push({ label: `Government Tax (${(govTaxRate*100).toFixed(0)}% of ${currentTerritory.code === 'SLU' ? 'NetPremium' : 'NetPremium + PolicyFee'})`, amount: govTaxAmt, running: null, type: 'positive' });
-  } else {
-    steps.push({ label: 'Government Tax (0%)', amount: 0, running: null, type: 'neutral', zero: true });
-  }
-  if (govVATAmt > 0) {
-    steps.push({ label: `VAT (${(sys.govVAT*100).toFixed(0)}% of NetPremium + PolicyFee + Tax)`, amount: govVATAmt, running: null, type: 'positive' });
-  } else {
-    steps.push({ label: `VAT (${currentTerritory.code} = 0%)`, amount: 0, running: null, type: 'neutral', zero: true });
-  }
-  // RSS Fee: ARU charges RSS on Third Party and TP Limited Comp; other territories use Sys fallback.
-  const territoryRssFee = currentTerritory.code === 'ARU'
-    ? (['TP', 'TPC'].includes(coverage) ? (pv.rssFee || sys.rssFee || 0) : 0)
-    : (sys.rssFee || 0);
+  const govTaxAmt = isEcDollarRoundingTerritory() ? round005(netPremium * govTaxRate) : round2((netPremium + policyFeeAmt) * govTaxRate);
+  const govVATAmt = isEcDollarRoundingTerritory() ? round005((netPremium + policyFeeAmt + govTaxAmt) * sys.govVAT) : round2((netPremium + policyFeeAmt + govTaxAmt) * sys.govVAT);
+  steps.push(govTaxAmt > 0 ? { label: `Government Tax (${(govTaxRate * 100).toFixed(0)}% of ${isEcDollarRoundingTerritory() ? 'NetPremium' : 'NetPremium + PolicyFee'})`, amount: govTaxAmt, running: null, type: 'positive' } : { label: 'Government Tax (0%)', amount: 0, running: null, type: 'neutral', zero: true });
+  steps.push(govVATAmt > 0 ? { label: `VAT (${(sys.govVAT * 100).toFixed(0)}% of NetPremium + PolicyFee + Tax)`, amount: govVATAmt, running: null, type: 'positive' } : { label: `VAT (${currentTerritory.code} = 0%)`, amount: 0, running: null, type: 'neutral', zero: true });
+  const territoryRssFee = currentTerritory.code === 'ARU' ? (['TP', 'TPC'].includes(coverage) ? (pv.rssFee || sys.rssFee || 0) : 0) : (sys.rssFee || 0);
   const rssFeeAmt = noRssFee ? 0 : territoryRssFee;
-  if (rssFeeAmt > 0) {
-    steps.push({ label: `RSS Fee`, amount: rssFeeAmt, running: null, type: 'positive' });
-  } else {
-    steps.push({ label: `RSS Fee (not applicable for ${currentTerritory.code})`, amount: 0, running: null, type: 'neutral', zero: true });
-  }
+  steps.push(rssFeeAmt > 0 ? { label: 'RSS Fee', amount: rssFeeAmt, running: null, type: 'positive' } : { label: `RSS Fee (not applicable for ${currentTerritory.code})`, amount: 0, running: null, type: 'neutral', zero: true });
   const nrsaAmt = noRssFee && currentTerritory.code === 'ARU' ? 0 : sys.nrsa;
-  if (nrsaAmt > 0) {
-    steps.push({ label: 'NRSA', amount: nrsaAmt, running: null, type: 'positive' });
-  } else {
-    steps.push({ label: 'NRSA (0)', amount: 0, running: null, type: 'neutral', zero: true });
-  }
+  steps.push(nrsaAmt > 0 ? { label: 'NRSA', amount: nrsaAmt, running: null, type: 'positive' } : { label: 'NRSA (0)', amount: 0, running: null, type: 'neutral', zero: true });
 
-  // ── TOTAL ──
   let totalPremium = round2(netPremium + policyFeeAmt + govTaxAmt + govVATAmt + nrsaAmt + rssFeeAmt);
-  if (currentTerritory.code === 'SLU') totalPremium = round005(totalPremium);
-  const premiumResult = {
-    coverage,
-    coverageLabel: coverageLabel(coverage, covData),
-    periodCode,
-    periodLabel,
-    vehUse,
-    vehUseLabel: document.getElementById('vehUse')?.selectedOptions?.[0]?.textContent || vehUse,
-    vehType,
-    vehYear,
-    basicPremium,
-    rateUpAmt,
-    ncdAmt,
-    discountPremium,
-    grossPremium,
-    passLiabAmt,
-    extraCoverages,
-    campaignAmt,
-    netPremium,
-    policyFee: policyFeeAmt,
-    govTaxAmt,
-    govVATAmt,
-    rssFeeAmt,
-    nrsaAmt,
-    totalPremium,
-    minPremApplied
-  };
+  if (isEcDollarRoundingTerritory()) totalPremium = round005(totalPremium);
+  const premiumResult = { coverage, coverageLabel: coverageLabel(coverage, covData), periodCode, periodLabel, vehUse, vehUseLabel: document.getElementById('vehUse')?.selectedOptions?.[0]?.textContent || vehUse, vehType, vehYear, basicPremium, rateUpAmt, ncdAmt, discountPremium, grossPremium, passLiabAmt, extraCoverages, campaignAmt, netPremium, policyFee: policyFeeAmt, govTaxAmt, govVATAmt, rssFeeAmt, nrsaAmt, totalPremium, minPremApplied };
 
   if (window.suppressCalculateRender) return premiumResult;
   window.lastPremiumResult = premiumResult;
 
-  // ── RENDER ──
   document.getElementById('emptyState').classList.add('hidden');
   document.getElementById('results').classList.remove('hidden');
   document.getElementById('exportBar').style.display = 'flex';
-  document.getElementById('dispTotal').textContent = currentTerritory.currency + ' ' + fmt(totalPremium);
+  document.getElementById('dispTotal').textContent = cur + ' ' + fmt(totalPremium);
   document.getElementById('minPremBadge').classList.toggle('hidden', !minPremApplied);
-
-  // Right panel
   document.getElementById('rpBasic').textContent  = cur + ' ' + fmt(discountPremium);
   document.getElementById('rpNCD').textContent    = cur + ' ' + fmt(ncdAmt);
   document.getElementById('rpNCDSub').textContent = `NCD ${ncdPct}% applied`;
   document.getElementById('rpNet').textContent    = cur + ' ' + fmt(netPremium);
   document.getElementById('rpTotal').textContent  = cur + ' ' + fmt(totalPremium);
 
-  // Dynamic notice box — reflect actual tax rate
   const taxPct = (sys.govTax * 100).toFixed(0);
   const vatPct = (sys.govVAT * 100).toFixed(0);
   document.getElementById('noticeTitle').textContent = currentTerritory.code + ' Tax Info';
-  if (sys.govTax > 0 || sys.govVAT > 0) {
-    document.getElementById('noticeText').textContent =
-      `Government Tax: ${taxPct}% applied on ${currentTerritory.code === 'SLU' ? 'NetPremium' : 'NetPremium + PolicyFee'}.` +
-      (sys.govVAT > 0 ? ` VAT: ${vatPct}% applied on (Net + Fee + Tax).` : ' No VAT.');
-  } else {
-    document.getElementById('noticeText').textContent =
-      `No government tax or VAT applies to vehicle premiums in ${currentTerritory.name}.`;
-  }
-
-  // Notices
+  document.getElementById('noticeText').textContent = (sys.govTax > 0 || sys.govVAT > 0)
+    ? `Government Tax: ${taxPct}% applied on ${isEcDollarRoundingTerritory() ? 'NetPremium' : 'NetPremium + PolicyFee'}.` + (sys.govVAT > 0 ? ` VAT: ${vatPct}% applied on (Net + Fee + Tax).` : ' No VAT.')
+    : `No government tax or VAT applies to vehicle premiums in ${currentTerritory.name}.`;
+  if (notices.missingCoverageRate) document.getElementById('noticeText').textContent += currentTerritory.code === 'GRE' ? ' GRE requires matching ComprehensiveRate or ThirdPartyRates rows for this selection.' : currentTerritory.code === 'SLU' ? ' SLU Comprehensive requires a non-zero PlusCat value in the ComprehensiveRateStLucia sheet for the selected vehicle use.' : ' The selected territory has a 0% coverage rate for this coverage in the Excel Coverage sheet.';
+  if (notices.missingVehicleUse) document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' NVehUse row was found for the selected vehicle use.';
+  if (notices.missingPremVar) document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' PremVar row was found for the selected vehicle use and coverage.';
   document.getElementById('aaldNotice').classList.toggle('hidden', !notices.aald);
   document.getElementById('minPremNotice').classList.toggle('hidden', !notices.minPrem);
   document.getElementById('fleetCapNotice').classList.toggle('hidden', !notices.fleetCap);
-  if (notices.missingCoverageRate) {
-    const missingRateMessage = currentTerritory.code === 'SLU' && coverage === 'C'
-      ? ' SLU Comprehensive requires a non-zero PlusCat value in the ComprehensiveRateStLucia sheet for the selected vehicle use.'
-      : ' The selected territory has a 0% coverage rate for this coverage in the Excel Coverage sheet. Fill LoadPerc for ' + currentTerritory.code + ' C/SC/TPC to calculate a base premium.';
-    document.getElementById('noticeText').textContent += missingRateMessage;
-  }
-  if (notices.missingVehicleUse) {
-    document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' NVehUse row was found for the selected vehicle use.';
-  }
-  if (notices.missingPremVar) {
-    document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' PremVar row was found for the selected vehicle use and coverage.';
-  }
 
-  // Print header card — client, vehicle and cover note details
   const documentData = getDocumentFormData();
-  const clientName = documentData.clientName;
-  const userNotes  = documentData.notes;
-  const catalogMake = documentData.vehicle.make;
-  const catalogModel = documentData.vehicle.model;
-  const catalogYear = documentData.vehicle.year;
-  const printMake = catalogMake || "—";
-  const printModel = catalogModel || "—";
-  const printYear = catalogYear || String(vehYear || "—");
-  const vehicleDetails = [
-    documentData.vehicle.color ? 'Color: ' + documentData.vehicle.color : '',
-    documentData.vehicle.vin ? 'VIN: ' + documentData.vehicle.vin : '',
-    documentData.vehicle.licensePlate ? 'Plate: ' + documentData.vehicle.licensePlate : ''
-  ].filter(Boolean).join(' / ');
+  const printMake = documentData.vehicle.make || '—';
+  const printModel = documentData.vehicle.model || '—';
+  const printYear = documentData.vehicle.year || String(vehYear || '—');
+  const vehicleDetails = [documentData.vehicle.color ? 'Color: ' + documentData.vehicle.color : '', documentData.vehicle.vin ? 'VIN: ' + documentData.vehicle.vin : '', documentData.vehicle.licensePlate ? 'Plate: ' + documentData.vehicle.licensePlate : ''].filter(Boolean).join(' / ');
   const now = new Date();
-  const dateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'});
-  const timeStr = now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
-  const fullDateTime = dateStr + ' at ' + timeStr;
-
-  document.getElementById('phcClient').textContent  = clientName || '—';
-  // Date format: dd-MMM-yyyy (e.g. 08-Jun-2026)
-  const printDateStr = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}).replace(/ /g, '-');
-  document.getElementById('phcDate').textContent    = printDateStr;
-  document.getElementById("phcTerritory").textContent = currentTerritory.name;
-  document.getElementById("phcVehicle").textContent = printMake + " / " + printModel + " / " + printYear;
-  document.getElementById("phcVehicleDetails").textContent = vehicleDetails || '—';
-  document.getElementById("phcInsuredValue").textContent = cur + " " + fmt(vehValue);
-  document.getElementById("phcCoverPeriod").textContent = documentData.coverPeriod.display || '—';
+  document.getElementById('phcClient').textContent = documentData.clientName || '—';
+  document.getElementById('phcDate').textContent = now.toLocaleDateString('en-GB', {day:'2-digit', month:'short', year:'numeric'}).replace(/ /g, '-');
+  document.getElementById('phcTerritory').textContent = currentTerritory.name;
+  document.getElementById('phcVehicle').textContent = printMake + ' / ' + printModel + ' / ' + printYear;
+  document.getElementById('phcVehicleDetails').textContent = vehicleDetails || '—';
+  document.getElementById('phcInsuredValue').textContent = cur + ' ' + fmt(vehValue);
+  document.getElementById('phcCoverPeriod').textContent = documentData.coverPeriod.display || '—';
   document.getElementById('printFooterTerritory').textContent = currentTerritory.name + ' (' + currentTerritory.code + ')';
-  document.getElementById('printDate').textContent   = fullDateTime;
-
-  // Print notes card — only show if notes entered
+  document.getElementById('printDate').textContent = now.toLocaleDateString('en-GB', {day:'2-digit', month:'long', year:'numeric'}) + ' at ' + now.toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
   const notesCard = document.getElementById('printNotesCard');
   const notesText = document.getElementById('printNotesText');
-  if (userNotes) {
-    notesText.textContent = userNotes;
-    notesCard.style.setProperty('display', 'block', 'important');
-  } else {
-    notesCard.style.display = 'none';
-  }
+  if (documentData.notes) { notesText.textContent = documentData.notes; notesCard.style.setProperty('display', 'block', 'important'); }
+  else { notesCard.style.display = 'none'; }
 
-  // Step table
   const tbody = document.getElementById('stepTable');
   tbody.innerHTML = '';
   let stepCount = 0;
@@ -2360,55 +2296,28 @@ function calculate() {
     const tr = document.createElement('tr');
     if (s.type === 'subtotal') tr.classList.add('subtotal');
     if (s.zero) tr.classList.add('zero-row');
-
     const tdLabel = document.createElement('td');
     tdLabel.className = 'step-label';
-
-    if (s.type === 'subtotal' && !s.sublabel) {
-      tdLabel.innerHTML = s.label;
-    } else if (s.amount !== null && s.amount !== undefined && !s.zero) {
-      stepCount++;
-      tdLabel.innerHTML = `<span class="step-num-badge">${stepCount}</span>${s.label}`;
-    } else {
-      tdLabel.textContent = s.label;
-    }
-
+    if (s.type === 'subtotal' && !s.sublabel) tdLabel.innerHTML = s.label;
+    else if (s.amount !== null && s.amount !== undefined && !s.zero) { stepCount++; tdLabel.innerHTML = `<span class="step-num-badge">${stepCount}</span>${s.label}`; }
+    else tdLabel.textContent = s.label;
     const tdNum = document.createElement('td');
     tdNum.className = 'step-num';
-
-    if (s.running !== null && s.running !== undefined && s.type === 'subtotal') {
-      tdNum.textContent = currentTerritory.currency + ' ' + fmt(s.running);
-      tdNum.className = 'step-num neutral';
-    } else if (s.amount !== null && s.amount !== undefined) {
-      const sign = s.amount > 0 ? '+' : '';
-      tdNum.textContent = (s.amount === 0 ? '—' : sign + currentTerritory.currency + ' ' + fmt(s.amount));
-      tdNum.className = `step-num ${s.type}`;
-    } else if (s.note) {
-      tdNum.textContent = s.note;
-      tdNum.className = 'step-num neutral';
-    }
-
-    tr.appendChild(tdLabel);
-    tr.appendChild(tdNum);
-    tbody.appendChild(tr);
+    if (s.running !== null && s.running !== undefined && s.type === 'subtotal') { tdNum.textContent = cur + ' ' + fmt(s.running); tdNum.className = 'step-num neutral'; }
+    else if (s.amount !== null && s.amount !== undefined) { const sign = s.amount > 0 ? '+' : ''; tdNum.textContent = s.amount === 0 ? '—' : sign + cur + ' ' + fmt(s.amount); tdNum.className = `step-num ${s.type}`; }
+    else if (s.note) { tdNum.textContent = s.note; tdNum.className = 'step-num neutral'; }
+    tr.appendChild(tdLabel); tr.appendChild(tdNum); tbody.appendChild(tr);
   }
-
-  // Final total row
   const trFinal = document.createElement('tr');
   trFinal.classList.add('subtotal');
   trFinal.style.borderTop = '2px solid #0B1F3A';
-  trFinal.innerHTML = `<td class="step-label" style="font-size:14px;font-weight:700;color:#0B1F3A">TOTAL PREMIUM</td><td class="step-num" style="font-size:15px;font-weight:700;color:#0B1F3A;font-family:'DM Mono',monospace;">${currentTerritory.currency} ${fmt(totalPremium)}</td>`;
+  trFinal.innerHTML = `<td class="step-label" style="font-size:14px;font-weight:700;color:#0B1F3A">TOTAL PREMIUM</td><td class="step-num" style="font-size:15px;font-weight:700;color:#0B1F3A;font-family:'DM Mono',monospace;">${cur} ${fmt(totalPremium)}</td>`;
   tbody.appendChild(trFinal);
-
   document.getElementById('breakdownTitle').textContent = 'Calculation Breakdown - ' + (premiumResult.coverageLabel || premiumResult.coverage);
   document.getElementById('stepCount').textContent = stepCount + ' steps';
-
   renderCoverageComparison();
-
-  // Scroll to results on mobile
-  if (window.innerWidth <= 780) {
-    document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
-  }
+  if (window.innerWidth <= 780) document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
+  return premiumResult;
 }
 function getAvailableCoverageCodes() {
   const select = document.getElementById('coverage');
@@ -2598,7 +2507,7 @@ const TERRITORIES = [
   { code: 'NEV', name: 'Nevis',               engine: 'GetPremRateSKT_NEV',currency: 'XCD', active: false },
   { code: 'SLU', name: 'St Lucia',            engine: 'GetPremRateSLU',    currency: 'XCD', currencyName: 'Eastern Caribbean Dollar', active: true },
   { code: 'DOM', name: 'Dominica',            engine: 'GetPremRateDOM',    currency: 'XCD', active: false },
-  { code: 'GRE', name: 'Grenada',             engine: 'GetPremRateGRE',    currency: 'XCD', active: false },
+  { code: 'GRE', name: 'Grenada',             engine: 'GetPremRateGRE',    currency: 'XCD', currencyName: 'Eastern Caribbean Dollar', active: true },
   { code: 'SVC', name: 'St. Vincent',         engine: 'GetPremRateSVC',    currency: 'XCD', active: false },
   { code: 'TCI', name: 'Turks & Caicos',      engine: 'GetPremRateTCI',    currency: 'USD', active: false },
   { code: 'BAH', name: 'Bahamas',             engine: 'CalcNoOverride',    currency: 'BSD', active: false },
@@ -2690,7 +2599,7 @@ function updateEngineSizeOptions() {
     { value: '49', label: 'MC < 50cc' }
   ];
 
-  if (currentTerritory.code === 'SLU') {
+  if (currentTerritory.code === 'SLU' || currentTerritory.code === 'GRE') {
     const vehUse = document.getElementById('vehUse')?.value || '';
     const rows = (RATES.thirdPartyRates || []).filter(r => r.ratesCategorie === vehUse);
     const categories = [...new Set(rows.map(r => String(r.objectCategorie)).filter(Boolean))];
@@ -2757,6 +2666,7 @@ function updateTerritoryDisplay() {
   window.currentTerritory = currentTerritory;
   RATES = currentTerritory.code === 'SMD' && window.SMD_RATES ? window.SMD_RATES :
           currentTerritory.code === 'SLU' && window.SLU_RATES ? window.SLU_RATES :
+          currentTerritory.code === 'GRE' && window.GRE_RATES ? window.GRE_RATES :
           currentTerritory.code === 'ARU' && window.ARU_RATES ? window.ARU_RATES :
           currentTerritory.code === 'BON' && window.BON_RATES ? window.BON_RATES : CUR_RATES;
   const territorySelect = document.getElementById('territorySelect');
