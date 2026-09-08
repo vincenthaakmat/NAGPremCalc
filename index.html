@@ -431,6 +431,18 @@
   }
 
   .zero-row td { opacity: 0.4; }
+  .coverage-compare-table { width: 100%; border-collapse: collapse; }
+  .coverage-compare-table th,
+  .coverage-compare-table td { padding: 10px 12px; border-bottom: 1px solid var(--border); font-size: 13px; vertical-align: middle; }
+  .coverage-compare-table th { background: #F7F9FC; color: var(--muted); font-size: 11px; font-weight: 700; text-align: right; text-transform: uppercase; }
+  .coverage-compare-table th:first-child,
+  .coverage-compare-table td:first-child { text-align: left; }
+  .coverage-compare-table td { text-align: right; }
+  .coverage-print-cell { width: 76px; }
+  .coverage-print-check { display: inline-flex; align-items: center; gap: 7px; color: var(--muted); font-size: 12px; white-space: nowrap; }
+  .coverage-print-check input { width: 16px; height: 16px; accent-color: var(--teal); }
+  .coverage-name-cell { color: var(--navy); font-weight: 600; }
+  .coverage-total-cell { color: var(--teal); font-family: var(--mono); font-weight: 700; }
 
   /* ─── TOTAL BOX ──────────────────────────────────── */
   .total-box {
@@ -646,13 +658,18 @@
   .quote-value { display: block; min-height: 16px; font-size: 10pt; color: #111827; }
   .quote-section-title { background: #0E7B6C; color: white; font-weight: 700; text-transform: uppercase; padding: 5px 8px; border: 1px solid #111827; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .quote-grid td { border: 1px solid #111827; padding: 5px 7px; vertical-align: top; height: 34px; }
-  .quote-premium-table th, .quote-premium-table td { border: 1px solid #111827; padding: 6px 8px; text-align: right; }
+  .quote-premium-table th, .quote-premium-table td { border: 1px solid #111827; padding: 5px 6px; text-align: right; font-size: 8pt; }
   .quote-premium-table th:first-child, .quote-premium-table td:first-child { text-align: left; }
+  .quote-premium-table .quote-total-cell { font-weight: 700; }
   .quote-premium-table th { background: #E8F2EF; color: #0B1F3A; font-weight: 700; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .quote-total-row td { background: #0E7B6C; color: white; font-weight: 700; font-size: 12pt; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
   .quote-notes-box { border: 1px solid #111827; min-height: 64px; padding: 7px 8px; white-space: pre-wrap; }
   .quote-signature-row { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 26px; }
   .quote-signature-line { border-top: 1px solid #111827; padding-top: 5px; font-size: 8pt; color: #374151; }
+  .quote-footer-note { margin-top: 18px; font-size: 8.5pt; color: #111827; line-height: 1.35; }
+  .quote-footer-note p { margin: 0 0 3px; }
+  .quote-footer-note ul { margin: 4px 0 0 16px; padding: 0; }
+  .quote-footer-note li { margin: 2px 0; }
 
   @media print {
     body.quote-print-mode { background: white !important; }
@@ -952,24 +969,25 @@
             <input type="text" id="catalogValue" value="" readonly>
           </div>
         </div>
+        <button type="button" class="export-btn btn-print" style="width:100%;justify-content:center;" onclick="startCatalogNewYearEntry()">Add New Year / Catalog Value</button>
         <div id="customCatalogFields" class="hidden">
           <div class="field-row">
             <div class="field">
-              <label>Other Make</label>
+              <label>Make</label>
               <input type="text" id="customCatalogMake" value="">
             </div>
             <div class="field">
-              <label>Other Model</label>
+              <label>Model</label>
               <input type="text" id="customCatalogModel" value="">
             </div>
           </div>
           <div class="field-row">
             <div class="field">
-              <label>Other Year Make</label>
+              <label>Year Make</label>
               <input type="number" id="customCatalogYear" value="" min="1900" max="2100" step="1">
             </div>
             <div class="field">
-              <label>Other Catalog Value (<span class="currency-code">XCG</span>)</label>
+              <label>Catalog Value (<span class="currency-code">XCG</span>)</label>
               <input type="number" id="customCatalogValue" value="" min="0" step="0.01">
             </div>
           </div>
@@ -1286,7 +1304,7 @@
           <img class="quote-logo" src="data/logo.jpg" alt="NAGICO">
           <div class="quote-title-block">
             <div class="quote-title">MOTOR VEHICLE INSURANCE QUOTATION</div>
-            <div class="quote-subtitle">Aruba, Bonaire and Curaçao</div>
+            <div class="quote-subtitle"></div>
           </div>
         </div>
 
@@ -1327,16 +1345,20 @@
 
         <div class="quote-section-title">Coverage and Premium</div>
         <table class="quote-premium-table">
-          <tr><th>Description</th><th>Amount</th></tr>
-          <tr><td>Coverage</td><td id="quoteCoverage"></td></tr>
-          <tr><td>Policy Period</td><td id="quotePolicyPeriod"></td></tr>
-          <tr><td>Basic Premium</td><td id="quoteBasicPremium"></td></tr>
-          <tr><td>No Claim Discount</td><td id="quoteNcd"></td></tr>
-          <tr><td>Net Premium</td><td id="quoteNetPremium"></td></tr>
-          <tr><td>Policy Fee</td><td id="quotePolicyFee"></td></tr>
-          <tr><td>Government Tax / VAT</td><td id="quoteTaxes"></td></tr>
-          <tr><td>RSS / NRSA Fees</td><td id="quoteFees"></td></tr>
-          <tr class="quote-total-row"><td>Total Premium Payable</td><td id="quoteTotalPremium"></td></tr>
+          <thead>
+            <tr>
+              <th>Coverage</th>
+              <th>Policy Period</th>
+              <th>Basic Premium</th>
+              <th>No Claim Discount</th>
+              <th>Net Premium</th>
+              <th>Policy Fee</th>
+              <th>Tax / VAT</th>
+              <th>RSS / NRSA</th>
+              <th>Total Premium</th>
+            </tr>
+          </thead>
+          <tbody id="quotePremiumRows"></tbody>
         </table>
 
         <div class="quote-section-title">Remarks</div>
@@ -1345,6 +1367,17 @@
         <div class="quote-signature-row">
           <div class="quote-signature-line">Prepared by</div>
           <div class="quote-signature-line">Accepted by client</div>
+        </div>
+
+        <div class="quote-footer-note">
+          <p>*Quotation is Valid for 15 days</p>
+          <p>*Quotation is subject to Nagico receiving the following document/information</p>
+          <ul>
+            <li>Completed and signed application form</li>
+            <li>No claim discount letter from previous insurance company</li>
+            <li>Valid driver's license</li>
+            <li>Valid vehicle registration and inspection card</li>
+          </ul>
         </div>
       </div>
     </div>
@@ -1371,7 +1404,27 @@
 
       <div class="breakdown-card">
         <div class="breakdown-header">
-          <h3>Calculation Breakdown</h3>
+          <h3>Coverage Comparison</h3>
+          <span class="step-badge" id="coverageCompareCount">— options</span>
+        </div>
+        <table class="coverage-compare-table">
+          <thead>
+            <tr>
+              <th class="coverage-print-cell">Print</th>
+              <th>Coverage</th>
+              <th>Basic</th>
+              <th>NCD</th>
+              <th>Net</th>
+              <th>Total</th>
+            </tr>
+          </thead>
+          <tbody id="coverageCompareBody"></tbody>
+        </table>
+      </div>
+
+      <div class="breakdown-card">
+        <div class="breakdown-header">
+          <h3 id="breakdownTitle">Calculation Breakdown</h3>
           <span class="step-badge" id="stepCount">— steps</span>
         </div>
         <table class="step-table" id="stepTable"></table>
@@ -2183,7 +2236,7 @@ function calculate() {
   // ── TOTAL ──
   let totalPremium = round2(netPremium + policyFeeAmt + govTaxAmt + govVATAmt + nrsaAmt + rssFeeAmt);
   if (currentTerritory.code === 'SLU') totalPremium = round005(totalPremium);
-  window.lastPremiumResult = {
+  const premiumResult = {
     coverage,
     coverageLabel: coverageLabel(coverage, covData),
     periodCode,
@@ -2209,6 +2262,9 @@ function calculate() {
     totalPremium,
     minPremApplied
   };
+
+  if (window.suppressCalculateRender) return premiumResult;
+  window.lastPremiumResult = premiumResult;
 
   // ── RENDER ──
   document.getElementById('emptyState').classList.add('hidden');
@@ -2344,12 +2400,83 @@ function calculate() {
   trFinal.innerHTML = `<td class="step-label" style="font-size:14px;font-weight:700;color:#0B1F3A">TOTAL PREMIUM</td><td class="step-num" style="font-size:15px;font-weight:700;color:#0B1F3A;font-family:'DM Mono',monospace;">${currentTerritory.currency} ${fmt(totalPremium)}</td>`;
   tbody.appendChild(trFinal);
 
+  document.getElementById('breakdownTitle').textContent = 'Calculation Breakdown - ' + (premiumResult.coverageLabel || premiumResult.coverage);
   document.getElementById('stepCount').textContent = stepCount + ' steps';
+
+  renderCoverageComparison();
 
   // Scroll to results on mobile
   if (window.innerWidth <= 780) {
     document.getElementById('results').scrollIntoView({ behavior: 'smooth' });
   }
+}
+function getAvailableCoverageCodes() {
+  const select = document.getElementById('coverage');
+  if (!select) return Object.keys(RATES.coverage || {});
+  return Array.from(select.options).map(option => option.value).filter(Boolean);
+}
+
+function getCheckedQuoteCoverageCodes() {
+  const checked = Array.from(document.querySelectorAll('.coverage-print-toggle:checked')).map(input => input.value);
+  if (checked.length) return checked;
+  const selected = document.getElementById('coverage')?.value;
+  return selected ? [selected] : [];
+}
+
+function calculateCoverageForComparison(code) {
+  const coverageSelect = document.getElementById('coverage');
+  if (!coverageSelect) return null;
+  const originalCoverage = coverageSelect.value;
+  window.suppressCalculateRender = true;
+  try {
+    coverageSelect.value = code;
+    return calculate();
+  } finally {
+    coverageSelect.value = originalCoverage;
+    window.suppressCalculateRender = false;
+  }
+}
+
+function renderCoverageComparison() {
+  const tbody = document.getElementById('coverageCompareBody');
+  if (!tbody) return;
+
+  const previousChecked = new Set(getCheckedQuoteCoverageCodes());
+  const currentCoverage = document.getElementById('coverage')?.value || '';
+  const coverageCodes = getAvailableCoverageCodes();
+  const results = coverageCodes.map(code => calculateCoverageForComparison(code)).filter(Boolean);
+  const checkedSet = previousChecked.size ? previousChecked : new Set([currentCoverage]);
+
+  tbody.innerHTML = '';
+  results.forEach(result => {
+    const tr = document.createElement('tr');
+    const isChecked = checkedSet.has(result.coverage);
+    tr.innerHTML = `
+      <td class="coverage-print-cell">
+        <label class="coverage-print-check">
+          <input type="checkbox" class="coverage-print-toggle" value="${result.coverage}" ${isChecked ? 'checked' : ''}>
+          Print
+        </label>
+      </td>
+      <td class="coverage-name-cell">${result.coverageLabel || result.coverage}</td>
+      <td>${currentTerritory.currency} ${fmt(result.discountPremium ?? result.basicPremium)}</td>
+      <td>${result.ncdAmt ? '-' + currentTerritory.currency + ' ' + fmt(result.ncdAmt) : currentTerritory.currency + ' ' + fmt(0)}</td>
+      <td>${currentTerritory.currency} ${fmt(result.netPremium)}</td>
+      <td class="coverage-total-cell">${currentTerritory.currency} ${fmt(result.totalPremium)}</td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  const count = document.getElementById('coverageCompareCount');
+  if (count) count.textContent = results.length + (results.length === 1 ? ' option' : ' options');
+  window.lastCoverageComparison = results;
+}
+
+function getQuoteCoverageResults() {
+  const selectedCodes = new Set(getCheckedQuoteCoverageCodes());
+  let results = (window.lastCoverageComparison || []).filter(result => selectedCodes.has(result.coverage));
+  if (!results.length && window.lastPremiumResult) results = [window.lastPremiumResult];
+  return results;
 }
 
 
@@ -2399,7 +2526,7 @@ function calculate() {
   function populateQuotePrint() {
     calculate();
     const data = getDocumentFormData();
-    const result = window.lastPremiumResult || {};
+    const results = getQuoteCoverageResults();
     const now = new Date();
     const quoteNo = currentTerritory.code + '-' + now.getFullYear() + String(now.getMonth() + 1).padStart(2, '0') + String(now.getDate()).padStart(2, '0') + '-' + String(now.getHours()).padStart(2, '0') + String(now.getMinutes()).padStart(2, '0');
 
@@ -2414,21 +2541,32 @@ function calculate() {
     setQuoteText('quoteColor', data.vehicle.color);
     setQuoteText('quoteVin', data.vehicle.vin);
     setQuoteText('quotePlate', data.vehicle.licensePlate);
-    setQuoteText('quoteVehicleUse', result.vehUseLabel || result.vehUse);
-    setQuoteText('quoteVehicleType', result.vehType);
+    setQuoteText('quoteVehicleUse', results[0]?.vehUseLabel || results[0]?.vehUse);
+    setQuoteText('quoteVehicleType', results[0]?.vehType);
     setQuoteText('quoteInsuredValue', money(data.vehicle.insuredValue));
-    setQuoteText('quoteCoverage', result.coverageLabel || result.coverage);
-    setQuoteText('quotePolicyPeriod', result.periodLabel || document.getElementById('period')?.selectedOptions?.[0]?.textContent || 'Annual');
-    setQuoteText('quoteBasicPremium', money(result.discountPremium ?? result.basicPremium));
-    setQuoteText('quoteNcd', result.ncdAmt ? '-' + money(result.ncdAmt) : money(0));
-    setQuoteText('quoteNetPremium', money(result.netPremium));
-    setQuoteText('quotePolicyFee', money(result.policyFee));
-    setQuoteText('quoteTaxes', money((result.govTaxAmt || 0) + (result.govVATAmt || 0)));
-    setQuoteText('quoteFees', money((result.rssFeeAmt || 0) + (result.nrsaAmt || 0)));
-    setQuoteText('quoteTotalPremium', money(result.totalPremium));
+
+    const tbody = document.getElementById('quotePremiumRows');
+    if (tbody) {
+      tbody.innerHTML = '';
+      results.forEach(result => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${result.coverageLabel || result.coverage}</td>
+          <td>${result.periodLabel || document.getElementById('period')?.selectedOptions?.[0]?.textContent || 'Annual'}</td>
+          <td>${money(result.discountPremium ?? result.basicPremium)}</td>
+          <td>${result.ncdAmt ? '-' + money(result.ncdAmt) : money(0)}</td>
+          <td>${money(result.netPremium)}</td>
+          <td>${money(result.policyFee)}</td>
+          <td>${money((result.govTaxAmt || 0) + (result.govVATAmt || 0))}</td>
+          <td>${money((result.rssFeeAmt || 0) + (result.nrsaAmt || 0))}</td>
+          <td class="quote-total-cell">${money(result.totalPremium)}</td>
+        `;
+        tbody.appendChild(tr);
+      });
+    }
+
     setQuoteText('quoteNotes', data.notes);
   }
-
   function clearQuotePrintMode() {
     document.body.classList.remove('quote-print-mode');
   }
