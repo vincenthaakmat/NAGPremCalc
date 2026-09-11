@@ -223,6 +223,22 @@
     background-color: #006b3f;
   }
   .flag-dom::after { content: none; }
+  .flag-svc {
+    background-image: url("data/SVC_Flag.svg");
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #0072c6;
+  }
+  .flag-svc::after { content: none; }
+  .flag-tci {
+    background-image: url("data/TCI_Flag.svg");
+    background-position: center;
+    background-size: cover;
+    background-repeat: no-repeat;
+    background-color: #00247d;
+  }
+  .flag-tci::after { content: none; }
   /* ─── LAYOUT ─────────────────────────────────────── */
   .app-body {
     display: grid;
@@ -928,6 +944,8 @@
       <option value="SAB">SAB · Saba</option>
       <option value="SLU">SLU · St Lucia</option>
       <option value="SMD">SMD · Sint Maarten</option>
+      <option value="SVC">SVC · St Vincent</option>
+      <option value="TCI">TCI · Turks &amp; Caicos</option>
     </select>
     <span id="headerCurrency" style="color:var(--gold-lite);font-size:12px;font-family:var(--mono);">XCG</span>
   </div>
@@ -1564,6 +1582,8 @@
 <script src="data/mon-rates.js"></script>
 <script src="data/eux-rates.js"></script>
 <script src="data/sab-rates.js"></script>
+<script src="data/svc-rates.js"></script>
+<script src="data/tci-rates.js"></script>
 <script>
 // ─── RATE TABLES — CUR database export (all tables) ─────────────────────────
 let RATES = {
@@ -1765,7 +1785,7 @@ function getSluComprehensiveRate(vehUse) {
 }
 
 function isEcDollarRoundingTerritory() {
-  return ['SLU', 'GRE', 'MON', 'DOM'].includes(currentTerritory.code);
+  return ['SLU', 'GRE', 'MON', 'DOM', 'SVC', 'TCI'].includes(currentTerritory.code);
 }
 
 function getGreComprehensiveRate(vehUse, vehicleValue, objectCategory) {
@@ -1833,6 +1853,24 @@ function getDomThirdPartyRate(vehUse, vehType) {
       || rows.find(r => { const t = domNormalizeType(r.vehType); return t.length >= 3 && (t.includes(target) || target.includes(t)); })
       || rows[0]
       || null;
+}
+
+// SVC (GetPremRateSVC): base premium comes from the NVehUse table, one row per
+// Vehicle Use + Coverage (C / T / TF).
+function getSvcVehUseRate(vehUse, coverage) {
+  const rows = RATES.nVehUseRates || [];
+  return rows.find(r => String(r.vuseId) === String(vehUse) && String(r.coverage || '').trim() === String(coverage))
+      || rows.find(r => String(r.vuseId) === String(vehUse))
+      || null;
+}
+
+// TCI (GetPremRateTCI) shares the NVehUse-per-coverage base table (getSvcVehUseRate) and adds
+// an age-band multiplier from the AgeCategory sheet, selected by the age dropdown index.
+function getTciAgeMultiplier(ageIndex) {
+  const rows = RATES.ageCategory || [];
+  if (!rows.length) return { value: 1, description: '' };
+  const row = rows[ageIndex] || rows[0];
+  return { value: Number(row.value) || 1, description: row.description || '' };
 }
 
 function getSabThirdPartyRate(vehUse, ageCat, vehType) {
@@ -2030,7 +2068,7 @@ document.querySelectorAll('.check-item input').forEach(cb => {
 
 function calculate() {
   const steps = [];
-  let notices = { aald: false, minPrem: false, fleetCap: false, missingCoverageRate: false, missingVehicleUse: false, missingPremVar: false };
+  let notices = { aald: false, minPrem: false, fleetCap: false, missingCoverageRate: false, missingVehicleUse: false, missingPremVar: false, belowMinValue: false };
 
   const coverage    = document.getElementById('coverage').value;
   const periodCode  = document.getElementById('period').value;
@@ -2127,6 +2165,70 @@ function calculate() {
     } else {
       notices.missingCoverageRate = true;
       steps.push({ label: `Basic Premium - DOM (${coverage} not supported by DOM engine)`, amount: 0, running: 0, type: 'neutral', zero: true });
+    }
+  } else if (currentTerritory.code === 'SVC') {
+    // GetPremRateSVC (PremCalculationRepository.cs): base premium = NVehUse.Premium for the
+    // matching Vehicle Use + Coverage, plus an AddCharge load above TreshHold (a per-1000 step
+    // for C / T, a LoadPerc formula for TF). NVehUse.ToolsCharge (tractors) is added here.
+    const svcRow = getSvcVehUseRate(vehUse, coverage);
+    if (!svcRow || Number(svcRow.premium || 0) <= 0) {
+      notices.missingCoverageRate = true;
+      basicPremium = 0;
+      steps.push({ label: `Basic Premium - SVC (no NVehUse row for ${vehUse} / ${coverage})`, amount: 0, running: 0, type: 'neutral', zero: true });
+    } else {
+      const base = round2(Number(svcRow.premium || 0));
+      const tresh = Number(svcRow.treshHold || 0);
+      const addChargeRate = Number(svcRow.addCharge || 0);
+      const minSumIns = Number(svcRow.minSumIns || 0);
+      if (minSumIns > 0 && vehValue < minSumIns) notices.belowMinValue = true;
+      basicPremium = base;
+      steps.push({ label: `Basic Premium - SVC NVehUse.Premium (${vehUse} / ${coverage})`, amount: base, running: basicPremium, type: 'neutral' });
+      let addCharge = 0;
+      if (coverage === 'TF') {
+        addCharge = round2(addChargeRate * (Number(svcRow.loadPerc || 0) * (vehValue - tresh) / 100));
+        if (addCharge !== 0) steps.push({ label: `SVC TF load (${cur} ${fmt(addChargeRate)} x ${svcRow.loadPerc}% of ${cur} ${fmt(vehValue)} - ${cur} ${fmt(tresh)})`, amount: addCharge, running: round2(basicPremium + addCharge), type: 'positive' });
+      } else if (vehValue > tresh && addChargeRate > 0) {
+        const units = round2((vehValue - tresh) / 1000);
+        addCharge = round2(units * addChargeRate);
+        steps.push({ label: `SVC over-threshold load (${units} x ${cur} ${fmt(addChargeRate)} per 1,000 above ${cur} ${fmt(tresh)})`, amount: addCharge, running: round2(basicPremium + addCharge), type: 'positive' });
+      }
+      basicPremium = round2(basicPremium + addCharge);
+      const toolsCharge = Number(svcRow.toolsCharge || 0);
+      if (toolsCharge > 0) {
+        basicPremium = round2(basicPremium + toolsCharge);
+        steps.push({ label: `SVC Tools of Trade charge (NVehUse.ToolsCharge)`, amount: toolsCharge, running: basicPremium, type: 'positive' });
+      }
+    }
+  } else if (currentTerritory.code === 'TCI') {
+    // GetPremRateTCI (PremCalculationRepository.cs): base premium = NVehUse.Premium for the
+    // matching Vehicle Use + Coverage, plus (NVehUse.LoadPerc / 100 * VehicleValue), plus
+    // NVehUse.ToolsCharge, then multiplied by the AgeCategory age-band factor.
+    const tciRow = getSvcVehUseRate(vehUse, coverage);
+    if (!tciRow || Number(tciRow.premium || 0) <= 0) {
+      notices.missingCoverageRate = true;
+      basicPremium = 0;
+      steps.push({ label: `Basic Premium - TCI (no NVehUse row for ${vehUse} / ${coverage})`, amount: 0, running: 0, type: 'neutral', zero: true });
+    } else {
+      const base = round2(Number(tciRow.premium || 0));
+      basicPremium = base;
+      steps.push({ label: `Basic Premium - TCI NVehUse.Premium (${vehUse} / ${coverage})`, amount: base, running: basicPremium, type: 'neutral' });
+      const loadPerc = Number(tciRow.loadPerc || 0);
+      if (loadPerc > 0) {
+        const loadAmt = round2(loadPerc * vehValue / 100);
+        basicPremium = round2(basicPremium + loadAmt);
+        steps.push({ label: `TCI value load (${loadPerc}% x ${cur} ${fmt(vehValue)})`, amount: loadAmt, running: basicPremium, type: 'positive' });
+      }
+      const toolsCharge = Number(tciRow.toolsCharge || 0);
+      if (toolsCharge > 0) {
+        basicPremium = round2(basicPremium + toolsCharge);
+        steps.push({ label: `TCI Tools of Trade charge (NVehUse.ToolsCharge)`, amount: toolsCharge, running: basicPremium, type: 'positive' });
+      }
+      const ageMult = getTciAgeMultiplier(ageCat);
+      if (ageMult.value !== 1) {
+        const before = basicPremium;
+        basicPremium = round2(basicPremium * ageMult.value);
+        steps.push({ label: `TCI age rate-up (${ageMult.description || 'AgeCategory'} x ${ageMult.value})`, amount: round2(basicPremium - before), running: basicPremium, type: 'positive' });
+      }
     }
   } else if (currentTerritory.code === 'EUX') {
     if (coverage === 'T') {
@@ -2311,7 +2413,7 @@ function calculate() {
   steps.push({ label: 'Sub-total (BasicPremium + RateUp)', amount: null, running: tmp, type: 'subtotal', sublabel: true });
 
   if (!rental) {
-    if (currentTerritory.code === 'SLU' || currentTerritory.code === 'GRE') {
+    if (currentTerritory.code === 'SLU' || currentTerritory.code === 'GRE' || currentTerritory.code === 'SVC' || currentTerritory.code === 'TCI') {
       if (aald) {
         const aaldAmt = round2(tmp * pv.aald / 100);
         tmp = round2(tmp + aaldAmt);
@@ -2410,10 +2512,10 @@ function calculate() {
   } else if (periodCode === '1Q') {
     grossPremium = round2(yearPremium * pv.quarterly / 100);
     periodLabel = `Quarterly rate (${pv.quarterly}% of annual)`;
-  } else if (isEcDollarRoundingTerritory() && currentTerritory.code !== 'DOM' && periodCode === '3M50') {
+  } else if (isEcDollarRoundingTerritory() && !['DOM', 'SVC', 'TCI'].includes(currentTerritory.code) && periodCode === '3M50') {
     grossPremium = round2(yearPremium * 0.4);
     periodLabel = `3-Month ${currentTerritory.code} rate (40% of annual)`;
-  } else if (isEcDollarRoundingTerritory() && currentTerritory.code !== 'DOM' && periodCode === '9M50') {
+  } else if (isEcDollarRoundingTerritory() && !['DOM', 'SVC', 'TCI'].includes(currentTerritory.code) && periodCode === '9M50') {
     grossPremium = round2(yearPremium * 0.6);
     periodLabel = `9-Month ${currentTerritory.code} rate (60% of annual)`;
   } else if (periodCode === '3M50' || periodCode === '9M50') {
@@ -2445,7 +2547,9 @@ function calculate() {
   let passLiabAmt = 0;
   if (passSeats > 0) {
     passLiabAmt = round2(passSeats * pv.passliab);
-    if (isEcDollarRoundingTerritory()) {
+    if (currentTerritory.code === 'SVC' || currentTerritory.code === 'TCI') {
+      // GetPremRateSVC / GetPremRateTCI apply no period adjustment to passenger liability.
+    } else if (isEcDollarRoundingTerritory()) {
       if (isShort) passLiabAmt = round2(passLiabAmt * shortPerc / 100);
       else if (periodCode === '1Q') passLiabAmt = round2(passLiabAmt * pv.quarterly / 100);
       else if (periodCode === '3M50' || periodCode === '9M50') passLiabAmt = round2(passLiabAmt * (currentTerritory.code === 'DOM' ? 0.5 : 0.4));
@@ -2490,10 +2594,11 @@ function calculate() {
   const policyFeeAmt = isEcDollarRoundingTerritory() ? round005(sys.policyfee) : sys.policyfee;
   steps.push({ label: `Policy Fee (${currentTerritory.code} Sys table)`, amount: policyFeeAmt, running: null, type: 'positive' });
   const govTaxRate = (currentTerritory.code === 'ARU' && coverage === 'TP') ? 0 : sys.govTax;
-  const govTaxBase = currentTerritory.code === 'SLU' ? netPremium : round2(netPremium + policyFeeAmt);
+  const govTaxOnNetOnly = ['SLU', 'SVC', 'TCI'].includes(currentTerritory.code);
+  const govTaxBase = govTaxOnNetOnly ? netPremium : round2(netPremium + policyFeeAmt);
   const govTaxAmt = isEcDollarRoundingTerritory() ? round005(govTaxBase * govTaxRate) : round2(govTaxBase * govTaxRate);
   const govVATAmt = isEcDollarRoundingTerritory() ? round005((netPremium + policyFeeAmt + govTaxAmt) * sys.govVAT) : round2((netPremium + policyFeeAmt + govTaxAmt) * sys.govVAT);
-  const govTaxBaseLabel = currentTerritory.code === 'SLU' ? 'NetPremium' : 'NetPremium + PolicyFee';
+  const govTaxBaseLabel = govTaxOnNetOnly ? 'NetPremium' : 'NetPremium + PolicyFee';
   steps.push(govTaxAmt > 0 ? { label: `Government Tax (${(govTaxRate * 100).toFixed(0)}% of ${govTaxBaseLabel})`, amount: govTaxAmt, running: null, type: 'positive' } : { label: 'Government Tax (0%)', amount: 0, running: null, type: 'neutral', zero: true });
   steps.push(govVATAmt > 0 ? { label: `VAT (${(sys.govVAT * 100).toFixed(0)}% of NetPremium + PolicyFee + Tax)`, amount: govVATAmt, running: null, type: 'positive' } : { label: `VAT (${currentTerritory.code} = 0%)`, amount: 0, running: null, type: 'neutral', zero: true });
   const territoryRssFee = currentTerritory.code === 'ARU' ? (['TP', 'TPC'].includes(coverage) ? (pv.rssFee || sys.rssFee || 0) : 0) : (sys.rssFee || 0);
@@ -2526,7 +2631,8 @@ function calculate() {
   document.getElementById('noticeText').textContent = (sys.govTax > 0 || sys.govVAT > 0)
     ? `Government Tax: ${taxPct}% applied on ${currentTerritory.code === 'SLU' ? 'NetPremium' : 'NetPremium + PolicyFee'}.` + (sys.govVAT > 0 ? ` VAT: ${vatPct}% applied on (Net + Fee + Tax).` : ' No VAT.')
     : `No government tax or VAT applies to vehicle premiums in ${currentTerritory.name}.`;
-  if (notices.missingCoverageRate) document.getElementById('noticeText').textContent += currentTerritory.code === 'GRE' ? ' GRE requires matching ComprehensiveRate or ThirdPartyRates rows for this selection.' : currentTerritory.code === 'SLU' ? ' SLU Comprehensive requires a non-zero PlusCat value in the ComprehensiveRateStLucia sheet for the selected vehicle use.' : currentTerritory.code === 'EUX' ? ' EUX requires non-zero ThirdPRateMONEUX.Premium for Third Party, and non-zero CompRateSABEUX.PremiumAmount plus PremVar.Charge for Comprehensive/Fire-Theft.' : currentTerritory.code === 'SAB' ? ' SAB requires non-zero ThirdPRateSABA.Amount for Third Party, and non-zero CompRateSABEUX.PremiumAmount plus PremVar.Charge for Comprehensive/Fire-Theft.' : currentTerritory.code === 'DOM' ? ' DOM requires a CompPercentage row: Coverage=C with a non-zero Percentage (matched on VehType, EngineSize and VehicleAge) for Comprehensive, or Coverage=T with a non-zero Premium (matched on VehUse and VehType) for Third Party.' : ' The selected territory has a 0% coverage rate for this coverage in the Excel Coverage sheet.';
+  if (notices.missingCoverageRate) document.getElementById('noticeText').textContent += currentTerritory.code === 'GRE' ? ' GRE requires matching ComprehensiveRate or ThirdPartyRates rows for this selection.' : currentTerritory.code === 'SLU' ? ' SLU Comprehensive requires a non-zero PlusCat value in the ComprehensiveRateStLucia sheet for the selected vehicle use.' : currentTerritory.code === 'EUX' ? ' EUX requires non-zero ThirdPRateMONEUX.Premium for Third Party, and non-zero CompRateSABEUX.PremiumAmount plus PremVar.Charge for Comprehensive/Fire-Theft.' : currentTerritory.code === 'SAB' ? ' SAB requires non-zero ThirdPRateSABA.Amount for Third Party, and non-zero CompRateSABEUX.PremiumAmount plus PremVar.Charge for Comprehensive/Fire-Theft.' : currentTerritory.code === 'DOM' ? ' DOM requires a CompPercentage row: Coverage=C with a non-zero Percentage (matched on VehType, EngineSize and VehicleAge) for Comprehensive, or Coverage=T with a non-zero Premium (matched on VehUse and VehType) for Third Party.' : currentTerritory.code === 'SVC' ? ' SVC requires an NVehUse row with a non-zero Premium for the selected Vehicle Use and Coverage (C / T / TF).' : currentTerritory.code === 'TCI' ? ' TCI requires an NVehUse row with a non-zero Premium for the selected Vehicle Use and Coverage (C / T).' : ' The selected territory has a 0% coverage rate for this coverage in the Excel Coverage sheet.';
+  if (notices.belowMinValue) document.getElementById('noticeText').textContent += ' The insured value is below the SVC minimum sum insured (NVehUse.MinSumIns) for this Vehicle Use and Coverage.';
   if (notices.missingVehicleUse) document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' NVehUse row was found for the selected vehicle use.';
   if (notices.missingPremVar) document.getElementById('noticeText').textContent += ' No ' + currentTerritory.code + ' PremVar row was found for the selected vehicle use and coverage.';
   document.getElementById('aaldNotice').classList.toggle('hidden', !notices.aald);
@@ -2772,8 +2878,8 @@ const TERRITORIES = [
   { code: 'SLU', name: 'St Lucia',            engine: 'GetPremRateSLU',    currency: 'XCD', currencyName: 'Eastern Caribbean Dollar', active: true },
   { code: 'DOM', name: 'Dominica',            engine: 'GetPremRateDOM',    currency: 'XCD', currencyName: 'Eastern Caribbean Dollar', active: true },
   { code: 'GRE', name: 'Grenada',             engine: 'GetPremRateGRE',    currency: 'XCD', currencyName: 'Eastern Caribbean Dollar', active: true },
-  { code: 'SVC', name: 'St. Vincent',         engine: 'GetPremRateSVC',    currency: 'XCD', active: false },
-  { code: 'TCI', name: 'Turks & Caicos',      engine: 'GetPremRateTCI',    currency: 'USD', active: false },
+  { code: 'SVC', name: 'St. Vincent',         engine: 'GetPremRateSVC',    currency: 'XCD', currencyName: 'Eastern Caribbean Dollar', active: true },
+  { code: 'TCI', name: 'Turks & Caicos',      engine: 'GetPremRateTCI',    currency: 'USD', currencyName: 'United States Dollar', active: true },
   { code: 'BAH', name: 'Bahamas',             engine: 'CalcNoOverride',    currency: 'BSD', active: false },
 ];
 
@@ -2865,6 +2971,9 @@ function updateAgeOptions() {
       const order = { '31': 0, '26': 1, '0': 2 };
       options = ages.sort((a, b) => (order[a] ?? Number(a)) - (order[b] ?? Number(b))).map(value => ({ value, label: ageCategoryLabel(value) }));
     }
+  } else if (currentTerritory.code === 'TCI' && (RATES.ageCategory || []).length) {
+    // TCI age-band rate-up (AgeCategory sheet); the option value is the row index.
+    options = RATES.ageCategory.map((row, i) => ({ value: String(i), label: `${row.description} (x ${row.value})` }));
   }
   sel.innerHTML = options.map(o => '<option value="' + o.value + '"' + (o.value === current ? ' selected' : '') + '>' + o.label + '</option>').join('');
   if (!options.some(o => o.value === current)) sel.value = options[0]?.value || '';
@@ -2968,6 +3077,8 @@ function updateTerritoryDisplay() {
           currentTerritory.code === 'SLU' && window.SLU_RATES ? window.SLU_RATES :
           currentTerritory.code === 'GRE' && window.GRE_RATES ? window.GRE_RATES :
           currentTerritory.code === 'DOM' && window.DOM_RATES ? window.DOM_RATES :
+          currentTerritory.code === 'SVC' && window.SVC_RATES ? window.SVC_RATES :
+          currentTerritory.code === 'TCI' && window.TCI_RATES ? window.TCI_RATES :
           currentTerritory.code === 'MON' && window.MON_RATES ? window.MON_RATES :
           currentTerritory.code === 'EUX' && window.EUX_RATES ? window.EUX_RATES :
           currentTerritory.code === 'SAB' && window.SAB_RATES ? window.SAB_RATES :
