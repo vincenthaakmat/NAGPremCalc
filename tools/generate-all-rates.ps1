@@ -1,6 +1,6 @@
 $ErrorActionPreference = 'Stop'
 
-$territories = @('ARU', 'BON', 'BVI', 'DOM', 'EUX', 'GRE', 'MON', 'SAB', 'SLU', 'SMD')
+$territories = @('ARU', 'BON', 'BVI', 'DOM', 'EUX', 'GRE', 'MON', 'SAB', 'SLU', 'SMD', 'SVC', 'TCI')
 foreach ($territory in $territories) {
   $workbook = Join-Path (Resolve-Path '.\data').Path "$territory-PremiumCalc.xlsx"
   if (-not (Test-Path $workbook)) {

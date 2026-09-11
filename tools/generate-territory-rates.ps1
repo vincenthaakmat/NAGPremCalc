@@ -21,6 +21,8 @@ $engineMap = @{
   SAB = 'SEM_SAB'
   SLU = 'SLU'
   SMD = 'SMD'
+  SVC = 'SVC'
+  TCI = 'TCI'
 }
 
 function Normalize-Key($value) {
@@ -126,7 +128,7 @@ function Add-CommonTables($workbook, $data) {
     if ($polType -and $polType -ne 'V') { continue }
     $codeValue = To-Text (Get-Prop $row @('CoverageCode','ID','Coverage'))
     if (-not $codeValue) { continue }
-    if (@('BVI','SMD') -contains $Code -and @('C','T','TF') -notcontains $codeValue) { continue }
+    if (@('BVI','SMD','SVC','TCI') -contains $Code -and @('C','T','TF') -notcontains $codeValue) { continue }
     $coverage[$codeValue] = [ordered]@{
       name = To-Text (Get-Prop $row @('CoverageName','Description','Descr','Name'))
       replacementvalue = To-Number (Get-Prop $row @('ReplacementValue','Replacement'))
@@ -487,6 +489,46 @@ try {
       }
     }
     $data.vehicleRateCriteria = $vehicleRateCriteria
+  }
+
+  # SVC (GetPremRateSVC) and TCI (GetPremRateTCI) rate the base premium straight from NVehUse,
+  # keyed by Vehicle Use + Coverage, so keep the full per-coverage rows (not just the label).
+  if ($engineMap.ContainsKey($Code) -and @('SVC', 'TCI') -contains $engineMap[$Code] -and (Has-Sheet $workbook 'NVehUse')) {
+    $nVehUseRates = @()
+    foreach ($row in (Get-SheetRows $workbook 'NVehUse')) {
+      if (-not (Territory-Matches $row)) { continue }
+      $vuse = To-Text (Get-Prop $row @('VuseID','VUseID','Code'))
+      if (-not $vuse -or $vuse -match '^\d+$') { continue }
+      $nVehUseRates += [ordered]@{
+        vuseId = $vuse
+        coverage = To-Text (Get-Prop $row @('Coverage','CoverageCode'))
+        label = To-Text (Get-Prop $row @('Vuse','Description','Descr','Name'))
+        premium = To-Number (Get-Prop $row @('Premium'))
+        minSumIns = To-Number (Get-Prop $row @('MinSumIns','MinSumInsured'))
+        treshHold = To-Number (Get-Prop $row @('TreshHold','Threshold'))
+        addCharge = To-Number (Get-Prop $row @('AddCharge'))
+        loadPerc = To-Number (Get-Prop $row @('LoadPerc'))
+        toolsCharge = To-Number (Get-Prop $row @('ToolsCharge'))
+        passLiab = To-Number (Get-Prop $row @('PassLiab'))
+        maxNcd = To-Number (Get-Prop $row @('MaxNCD'))
+      }
+    }
+    $data.nVehUseRates = $nVehUseRates
+  }
+
+  # TCI (GetPremRateTCI) multiplies the basic premium by an age-band factor from AgeCategory.
+  if ($engineMap.ContainsKey($Code) -and $engineMap[$Code] -eq 'TCI' -and (Has-Sheet $workbook 'AgeCategory')) {
+    $ageCategory = @()
+    foreach ($row in (Get-SheetRows $workbook 'AgeCategory')) {
+      if (-not (Territory-Matches $row -AllowGlobal)) { continue }
+      $desc = To-Text (Get-Prop $row @('Description','AgeGroup','Label','Name'))
+      if (-not $desc) { continue }
+      $ageCategory += [ordered]@{
+        description = $desc
+        value = To-Number (Get-Prop $row @('Value','Factor','Multiplier','RateUp'))
+      }
+    }
+    $data.ageCategory = $ageCategory
   }
 
   Add-CommonTables $workbook $data
