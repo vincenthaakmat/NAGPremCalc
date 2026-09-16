@@ -310,6 +310,15 @@
     box-shadow: 0 0 0 3px rgba(14,123,108,0.12);
   }
   .field input[type="number"] { font-family: var(--mono); }
+  .field-required select, .field-required input {
+    border-color: var(--red);
+    box-shadow: 0 0 0 1px rgba(192,57,43,0.12);
+  }
+  .field-required select:focus, .field-required input:focus {
+    border-color: var(--red);
+    box-shadow: 0 0 0 3px rgba(192,57,43,0.18);
+  }
+  .required-star { color: var(--red); font-weight: 700; }
 
   .field-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
   .field-row3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
@@ -323,6 +332,48 @@
     color: var(--teal);
     font-weight: 600;
   }
+
+  /* ─── VOICE DICTATION ────────────────────────────── */
+  .voice-panel {
+    background: var(--teal-pale);
+    border: 1px solid var(--teal-lite);
+    border-radius: var(--radius);
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .voice-panel-header { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+  .voice-panel-header .section-title { margin-bottom: 0; }
+  .voice-mic-btn {
+    display: flex; align-items: center; justify-content: center; gap: 6px;
+    height: 30px; padding: 0 12px; border-radius: 999px; border: 1px solid var(--teal);
+    background: var(--card); color: var(--teal); font-family: var(--sans); font-size: 12px; font-weight: 600;
+    cursor: pointer; transition: background 0.15s, color 0.15s; white-space: nowrap;
+  }
+  .voice-mic-btn:hover { background: var(--teal); color: #fff; }
+  .voice-mic-btn.listening { background: var(--red); border-color: var(--red); color: #fff; animation: voicePulse 1.2s infinite; }
+  @keyframes voicePulse {
+    0%, 100% { box-shadow: 0 0 0 0 rgba(192,57,43,0.35); }
+    50% { box-shadow: 0 0 0 6px rgba(192,57,43,0); }
+  }
+  .voice-transcript {
+    width: 100%; min-height: 52px; font-family: var(--sans); font-size: 12px; line-height: 1.4;
+    border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 10px;
+    background: var(--card); color: var(--text); resize: vertical;
+  }
+  .voice-transcript:focus { outline: none; border-color: var(--teal-lite); box-shadow: 0 0 0 3px rgba(14,123,108,0.12); }
+  .voice-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .voice-fill-btn {
+    height: 30px; border-radius: var(--radius); border: none; background: var(--teal); color: #fff;
+    font-family: var(--sans); font-size: 12px; font-weight: 600; cursor: pointer; padding: 0 12px;
+  }
+  .voice-fill-btn:hover { background: var(--teal-lite); }
+  .voice-fill-btn:disabled { background: var(--faint); cursor: not-allowed; }
+  .voice-note { font-size: 11px; line-height: 1.4; color: var(--muted); }
+  .voice-summary { font-size: 11px; line-height: 1.6; color: var(--muted); }
+  .voice-summary strong { color: var(--teal); font-weight: 600; }
+  .voice-summary .voice-miss { color: var(--faint); }
 
   /* checkboxes */
   .check-group {
@@ -956,6 +1007,21 @@
   <!-- ═══ LEFT SIDEBAR ═══ -->
   <aside class="sidebar">
 
+    <div class="voice-panel" id="voicePanel">
+      <div class="voice-panel-header">
+        <div class="section-title">Voice Fill</div>
+        <button type="button" class="voice-mic-btn" id="voiceMicBtn" onclick="toggleVoiceDictation()">🎤 <span id="voiceMicLabel">Dictate</span></button>
+      </div>
+      <textarea class="voice-transcript" id="voiceTranscript" placeholder="e.g. &quot;2020 Toyota Corolla, private use, comprehensive, engine under 1600, male driver over 30, more than two years experience, three seats&quot; — dictate or type here, then Fill Form."></textarea>
+      <div class="voice-actions">
+        <button type="button" class="voice-fill-btn" id="voiceFillBtn" onclick="applyVoiceDictation()">Fill Form</button>
+        <span class="voice-note" id="voiceStatus"></span>
+      </div>
+      <div class="voice-summary hidden" id="voiceSummary"></div>
+    </div>
+
+    <div class="divider"></div>
+
     <div>
       <div class="section-title">Policy</div>
       <div class="field-group">
@@ -1012,13 +1078,13 @@
       <div class="field-group">
         <div class="field-row">
           <div class="field">
-            <label>Catalog Make</label>
+            <label>Catalog Make (optional)</label>
             <select id="catalogMake" onchange="onCatalogMakeChange()">
               <option value="">Select make...</option>
             </select>
           </div>
           <div class="field">
-            <label>Catalog Model</label>
+            <label>Catalog Model (optional)</label>
             <select id="catalogModel" onchange="onCatalogModelChange()" disabled>
               <option value="">Select model...</option>
             </select>
@@ -1026,7 +1092,7 @@
         </div>
         <div class="field-row">
           <div class="field">
-            <label>Year Make</label>
+            <label>Catalog Year (optional)</label>
             <select id="catalogYear" onchange="applyCatalogValue()" disabled>
               <option value="">Select year...</option>
             </select>
@@ -1061,6 +1127,7 @@
           <button type="button" class="export-btn btn-print" style="width:100%;justify-content:center;" onclick="saveCustomCatalogEntry()">Save Catalog Entry</button>
         </div>
         <div class="catalog-status" id="catalogStatus"></div>
+        <div class="catalog-status">Catalog lookup above is optional — it only auto-fills Insured Value below. You can type the value directly instead; it's all the calculator needs.</div>
         <div class="field">
           <label>Insured Value (<span class="currency-code">XCG</span>)</label>
           <input type="number" id="vehValue" value="" step="0.01" min="0" onblur="if(this.value) this.value = parseFloat(this.value).toFixed(2)">
@@ -1336,7 +1403,7 @@
   <main class="main">
 
     <div>
-      <h1 class="page-title">NAGICO Premium Calculation</h1>
+      <h1 class="page-title" id="pageTitle">NAGICO Premium Calculation</h1>
       <p class="page-sub" id="pageSubtitle">Territory: Curaçao (CUR) &nbsp;·&nbsp; Currency: XCG &nbsp;·&nbsp; Engine: GetPremRateABC</p>
     </div>
 
@@ -3071,6 +3138,55 @@ function refreshDropdownsForSelection(includeCoverage = true) {
   updateVehicleTypeOptions();
   updateNcdOptions(false);
 }
+
+// ─── REQUIRED-FIELD MARKERS ─────────────────────────────────────────────────
+// Which inputs actually feed the selected territory's basic-premium lookup (see the
+// currentTerritory.code branches inside calculate()). Coverage / Vehicle Use / Insured Value
+// are needed everywhere; the rest only matter for territories whose rate tables key on them.
+const REQUIRED_FIELDS_BY_TERRITORY = {
+  ARU: ['coverage', 'vehUse', 'vehValue', 'vehType'],
+  BON: ['coverage', 'vehUse', 'vehValue', 'vehType'],
+  CUR: ['coverage', 'vehUse', 'vehValue', 'vehType'],
+  SMD: ['coverage', 'vehUse', 'vehValue', 'vehType'],
+  GRE: ['coverage', 'vehUse', 'vehValue', 'engSize'],
+  SLU: ['coverage', 'vehUse', 'vehValue', 'engSize'],
+  MON: ['coverage', 'vehUse', 'vehValue', 'ageCat', 'engSize'],
+  SAB: ['coverage', 'vehUse', 'vehValue', 'ageCat', 'vehType'],
+  EUX: ['coverage', 'vehUse', 'vehValue', 'ageCat', 'engSize'],
+  BVI: ['coverage', 'vehUse', 'vehValue'],
+  DOM: ['coverage', 'vehUse', 'vehValue', 'vehType', 'engSize', 'vehYear'],
+  SVC: ['coverage', 'vehUse', 'vehValue'],
+  TCI: ['coverage', 'vehUse', 'vehValue', 'ageCat']
+};
+const REQUIRABLE_FIELD_IDS = ['coverage', 'vehUse', 'vehValue', 'vehType', 'vehYear', 'engSize', 'ageCat'];
+
+function updateRequiredFieldMarkers() {
+  const required = new Set(REQUIRED_FIELDS_BY_TERRITORY[currentTerritory.code] || ['coverage', 'vehUse', 'vehValue']);
+  REQUIRABLE_FIELD_IDS.forEach(id => {
+    const input = document.getElementById(id);
+    const field = input && input.closest ? input.closest('.field') : null;
+    if (!field) return;
+    const label = field.querySelector('label');
+    const isRequired = required.has(id);
+    field.classList.toggle('field-required', isRequired);
+    if (!label) return;
+    // Append a dedicated star span rather than touching textContent, so labels that already
+    // contain markup (e.g. Insured Value's currency-code span) are left alone.
+    let star = label.querySelector('.required-star');
+    if (isRequired) {
+      if (!star) {
+        star = document.createElement('span');
+        star.className = 'required-star';
+        star.textContent = ' *';
+        star.setAttribute('aria-hidden', 'true');
+        label.appendChild(star);
+      }
+    } else if (star) {
+      star.remove();
+    }
+  });
+}
+
 function updateTerritoryDisplay() {
   window.currentTerritory = currentTerritory;
   RATES = currentTerritory.code === 'SMD' && window.SMD_RATES ? window.SMD_RATES :
@@ -3094,6 +3210,8 @@ function updateTerritoryDisplay() {
     territoryFlag.title = currentTerritory.name;
   }
   document.getElementById('headerCurrency').textContent = currentTerritory.currency;
+  const pageTitleEl = document.getElementById('pageTitle');
+  if (pageTitleEl) pageTitleEl.textContent = 'NAGICO Premium Calculation — ' + currentTerritory.name + ' (' + currentTerritory.code + ')';
   document.getElementById('pageSubtitle').innerHTML =
     'Territory: ' + currentTerritory.name + ' (' + currentTerritory.code + ') &nbsp;·&nbsp; Currency: ' + currentTerritory.currency + ' &nbsp;·&nbsp; Engine: ' + currentTerritory.engine;
   document.getElementById('totalCurrencyLabel').textContent =
@@ -3101,6 +3219,7 @@ function updateTerritoryDisplay() {
   updateCurrencyLabels();
   refreshDropdownsForSelection(true);
   if (window.initCatalogLookup) window.initCatalogLookup();
+  updateRequiredFieldMarkers();
   calculate();
 }
 
@@ -3137,8 +3256,424 @@ function selectTerritory(code) {
   document.getElementById('exportBar').style.display = 'none';
 }
 
+// ─── VOICE DICTATION ────────────────────────────────────────────────────────
+// Rule-based speech-to-fields: Web Speech API captures a transcript, then keyword/number
+// matching against the *live* dropdown options (so it automatically follows whatever
+// territory/coverage/vehicle-use set is currently active) fills the form and recalculates.
+// Runs entirely in the browser - no API key, no network call, nothing leaves the page.
+
+let voiceRecognition = null;
+let voiceListening = false;
+
+function voiceNormalize(s) {
+  return String(s || '').toLowerCase();
+}
+
+function voiceSelectOptions(id) {
+  const el = document.getElementById(id);
+  if (!el) return [];
+  return [...el.options].map(o => ({ value: o.value, text: o.textContent }));
+}
+
+function voiceExpandSynonyms(text) {
+  const rules = [
+    [/\bpersonal use\b|\bpersonal\b|\bown use\b/g, 'private'],
+    [/\bbusiness use\b|\bcompany car\b|\bcorporate\b/g, 'commercial'],
+    [/\bcab\b/g, 'taxi'],
+    [/\brent[\s-]?a[\s-]?car\b|\bcar rental\b|\brented\b/g, 'rental'],
+    [/\bmotor[\s-]?bike\b/g, 'motorcycle'],
+    [/\bharley\b(?!\s*davidson)/g, 'harley davidson'],
+    [/\bpick[\s-]?up\b/g, 'pickup'],
+    [/\bfully comprehensive\b|\bfull cover\b|\ball[\s-]?risk\b/g, 'comprehensive'],
+    [/\bliability only\b|\bthird[\s-]?party only\b/g, 'third party'],
+    [/\bfire and theft\b/g, 'fire & theft']
+  ];
+  let out = ' ' + text + ' ';
+  rules.forEach(([re, repl]) => { out = out.replace(re, ' ' + repl + ' '); });
+  return out;
+}
+
+// Generic best-match: scores each <option> label against the transcript by matched-word
+// coverage (numeric label tokens like "25" require a word-boundary match so "2020" can't
+// satisfy an age bucket, etc). Works for any dropdown, so it automatically adapts per territory.
+function voiceMatchOption(transcript, options) {
+  const t = transcript;
+  let best = null, bestScore = 0;
+  for (const opt of options) {
+    if (!opt.value) continue;
+    const codeLower = voiceNormalize(opt.value);
+    const label = voiceNormalize(opt.text).replace(/\([^)]*\)/g, '').trim();
+    if (!label) continue;
+    const rawWords = label.split(/[^a-z0-9]+/).filter(w => w && (w.length > 2 || /^\d+$/.test(w)));
+    // Drop the option's own code as a "word" (e.g. "ARU · Aruba") UNLESS the code IS the
+    // whole label (e.g. a catalog make "TOYOTA"), in which case keep it - dropping it would
+    // leave nothing to match against.
+    const hasOtherWords = rawWords.some(w => w !== codeLower);
+    const words = hasOtherWords ? rawWords.filter(w => w !== codeLower) : rawWords;
+    if (!words.length) continue;
+    const matched = words.filter(w => /^\d+$/.test(w) ? new RegExp('\\b' + w + '\\b').test(t) : t.includes(w));
+    if (!matched.length) continue;
+    let score = matched.reduce((a, w) => a + Math.max(w.length, 2), 0) * (matched.length / words.length);
+    if (t.includes(label)) score += 5;
+    if (score > bestScore) { bestScore = score; best = opt; }
+  }
+  return bestScore >= 3 ? best : null;
+}
+
+function voiceFindYear(t) {
+  const currentYear = new Date().getFullYear();
+  const matches = (t.match(/\b(19[6-9]\d|20[0-2]\d)\b/g) || []).map(Number).filter(y => y <= currentYear + 1);
+  return matches.length ? matches[0] : null;
+}
+
+function voiceFindMoneyValue(t) {
+  const matches = [...t.matchAll(/\$?\s*(\d[\d,]*(?:\.\d+)?)\s*(thousand|k\b)?\s*(dollars?|usd|us\$|xcd|ec\$|bucks)?/gi)];
+  let best = null;
+  for (const m of matches) {
+    const digits = (m[1] || '').replace(/,/g, '');
+    if (!digits) continue;
+    let num = parseFloat(digits);
+    if (!isFinite(num) || num <= 0) continue;
+    const hasThousand = !!m[2];
+    const hasCurrency = m[0].includes('$') || !!m[3];
+    if (hasThousand) num *= 1000;
+    if (!hasThousand && !hasCurrency && digits.length < 3) continue; // skip stray small numbers
+    const cueScore = (m[0].includes('$') ? 2 : 0) + (hasThousand ? 2 : 0) + (m[3] ? 2 : 0);
+    if (!best || cueScore > best.cueScore || (cueScore === best.cueScore && num > best.num)) best = { num, cueScore };
+  }
+  return best ? best.num : null;
+}
+
+function voiceFindSeats(t) {
+  const m = t.match(/\b(\d{1,2})\s*(?:seats?|passengers?|persons?|occupants?)\b/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function voiceMatchEngineSize(t) {
+  const options = voiceSelectOptions('engSize');
+  // Only look at this at all if the transcript actually mentions the engine - otherwise
+  // "over"/"under" from an age or value phrase ("over 30", "under 1600 dollars") would
+  // falsely look like an engine-size direction.
+  if (!options.length || !/\dcc\b|\bcc\b|\bcylinder|\bcubic|\bengine\b/.test(t)) return null;
+  const ccMatches = [...t.matchAll(/(\d{2,4})\s*cc\b/g)].map(m => parseInt(m[1], 10));
+  const wantsOver = /\b(over|above|more than)\b/.test(t);
+  const wantsUnder = /\b(under|below|up to|less than)\b/.test(t);
+  let best = null, bestScore = 0;
+  for (const opt of options) {
+    const label = voiceNormalize(opt.text);
+    const numMatch = label.match(/(\d{2,4})/);
+    if (!numMatch) continue;
+    const optNum = parseInt(numMatch[1], 10);
+    const optIsOver = /over|above/.test(label);
+    const optIsUnder = /up to|under|below/.test(label);
+    let score = 0;
+    if (ccMatches.includes(optNum)) score += 5;
+    if (wantsOver && optIsOver) score += 3;
+    if (wantsUnder && optIsUnder) score += 3;
+    if (ccMatches.length && Math.abs(ccMatches[0] - optNum) <= 50) score += 2;
+    if (score > bestScore) { bestScore = score; best = opt; }
+  }
+  return bestScore > 0 ? best : null;
+}
+
+function voiceParseAgeRange(label) {
+  const l = voiceNormalize(label);
+  let m = l.match(/(\d{1,2})\s*(?:and older|\+|and over)/);
+  if (m) return { min: parseInt(m[1], 10) };
+  m = l.match(/(?:over|above)\s*(\d{1,2})/);
+  if (m) return { min: parseInt(m[1], 10) + 1 };
+  m = l.match(/(?:under|below|less than)\s*(\d{1,2})/);
+  if (m) return { max: parseInt(m[1], 10) - 1 };
+  m = l.match(/(\d{1,2})\s*(?:-|to)\s*(\d{1,2})/);
+  if (m) return { min: parseInt(m[1], 10), max: parseInt(m[2], 10) };
+  return null;
+}
+
+function voiceMatchAgeOption(t) {
+  const options = voiceSelectOptions('ageCat');
+  if (!options.length) return null;
+  const direct = voiceMatchOption(t, options);
+  if (direct) return direct;
+  const ageMatch = t.match(/\b(?:age(?:d)?|driver(?: is)?)\s*(\d{1,2})\b/) || t.match(/\b(\d{1,2})\s*years?\s*old\b/);
+  if (!ageMatch) return null;
+  const age = parseInt(ageMatch[1], 10);
+  for (const opt of options) {
+    const range = voiceParseAgeRange(opt.text);
+    if (!range) continue;
+    if ((range.min == null || age >= range.min) && (range.max == null || age <= range.max)) return opt;
+  }
+  return null;
+}
+
+function voiceMatchSex(t) {
+  if (/\b(female|woman|she|her)\b/.test(t)) return 'F';
+  if (/\b(male|man|\bhe\b|\bhis\b)\b/.test(t)) return 'M';
+  return null;
+}
+
+function voiceMatchDriverExp(t) {
+  if (/\b(new driver|inexperienced|learner|no experience|less than (?:two|2) years?)\b/.test(t)) return '0';
+  const m = t.match(/(\d{1,2})\s*years?\s*(?:of\s*)?(?:driving\s*)?experience/);
+  if (m) return parseInt(m[1], 10) >= 2 ? '3' : '0';
+  if (/\b(experienced driver|more than (?:two|2) years?|over (?:two|2) years?)\b/.test(t)) return '3';
+  return null;
+}
+
+function voiceFindNcd(t) {
+  const m = t.match(/no[\s-]?claims?\s*(?:discount|bonus)?\s*(?:of)?\s*(\d{1,3})\s*(?:percent|%)/)
+         || t.match(/(\d{1,3})\s*(?:percent|%)\s*no[\s-]?claims?/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function voiceFindRateUp(t) {
+  const m = t.match(/(?:rate[\s-]?up|loading)\s*(?:of)?\s*(\d{1,3})\s*(?:percent|%)/);
+  return m ? parseInt(m[1], 10) : null;
+}
+
+function voiceMatchFlags(t) {
+  return {
+    aald: /\b(any (?:authorised|authorized) (?:licensed )?driver|\baald\b)\b/.test(t) ? true : null,
+    forLic: /\bforeign licen[cs]e\b/.test(t) ? true : null,
+    fleet: /\bfleet\b/.test(t) ? true : null,
+    staff: /\bstaff\b/.test(t) ? true : null,
+    newVeh: /\bnew vehicle\b|\bbrand new\b/.test(t) ? true : null,
+    rental: /\brental surcharge\b/.test(t) ? true : null
+  };
+}
+
+// Best-effort Make/Model/Year -> catalog value, driving the same dropdowns and functions
+// the manual "Catalog Make/Model/Year" fields use.
+function voiceTryCatalogLookup(t, year) {
+  const makeOptions = voiceSelectOptions('catalogMake');
+  if (!makeOptions.length) return null;
+  const makeOpt = voiceMatchOption(t, makeOptions);
+  if (!makeOpt) return null;
+  document.getElementById('catalogMake').value = makeOpt.value;
+  if (window.onCatalogMakeChange) onCatalogMakeChange();
+
+  const modelOpt = voiceMatchOption(t, voiceSelectOptions('catalogModel'));
+  if (!modelOpt) return 'Make → ' + makeOpt.text + ' (model not recognized)';
+  document.getElementById('catalogModel').value = modelOpt.value;
+  if (window.onCatalogModelChange) onCatalogModelChange();
+
+  const yearOptions = voiceSelectOptions('catalogYear');
+  let yearOpt = year ? yearOptions.find(o => o.value === String(year)) : null;
+  if (!yearOpt) yearOpt = yearOptions.find(o => o.value) || null;
+  if (!yearOpt) return 'Vehicle → ' + makeOpt.text + ' ' + modelOpt.text + ' (year not in catalog)';
+  document.getElementById('catalogYear').value = yearOpt.value;
+  if (window.applyCatalogValue) applyCatalogValue();
+  return 'Vehicle → ' + makeOpt.text + ' ' + modelOpt.text + ' (' + yearOpt.value + ') from catalog';
+}
+
+function voiceMatchTerritory(t) {
+  return voiceMatchOption(t, voiceSelectOptions('territorySelect'));
+}
+
+function getSpeechRecognitionCtor() {
+  return window.SpeechRecognition || window.webkitSpeechRecognition || null;
+}
+
+function toggleVoiceDictation() {
+  const statusEl = document.getElementById('voiceStatus');
+  const Ctor = getSpeechRecognitionCtor();
+  if (!Ctor) {
+    statusEl.textContent = "Voice capture isn't supported in this browser — try Chrome or Edge, or just type into the box.";
+    return;
+  }
+  if (voiceListening) {
+    voiceRecognition && voiceRecognition.stop();
+    return;
+  }
+  const micBtn = document.getElementById('voiceMicBtn');
+  const micLabel = document.getElementById('voiceMicLabel');
+  const transcriptEl = document.getElementById('voiceTranscript');
+  const baseText = transcriptEl.value.trim();
+  let finalTranscript = baseText ? baseText + ' ' : '';
+
+  voiceRecognition = new Ctor();
+  voiceRecognition.lang = 'en-US';
+  voiceRecognition.continuous = true;
+  voiceRecognition.interimResults = true;
+
+  voiceRecognition.onstart = () => {
+    voiceListening = true;
+    micBtn.classList.add('listening');
+    micLabel.textContent = 'Stop';
+    statusEl.textContent = 'Listening…';
+  };
+  voiceRecognition.onresult = (event) => {
+    let interim = '';
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      const chunk = event.results[i][0].transcript;
+      if (event.results[i].isFinal) finalTranscript += chunk + ' ';
+      else interim += chunk;
+    }
+    transcriptEl.value = (finalTranscript + interim).trim();
+  };
+  voiceRecognition.onerror = (event) => {
+    statusEl.textContent = 'Voice input error (' + (event.error || 'unknown') + ') — you can type into the box instead.';
+  };
+  voiceRecognition.onend = () => {
+    voiceListening = false;
+    micBtn.classList.remove('listening');
+    micLabel.textContent = 'Dictate';
+    if (statusEl.textContent === 'Listening…') statusEl.textContent = 'Stopped — edit the text if needed, then Fill Form.';
+  };
+  try {
+    voiceRecognition.start();
+  } catch (err) {
+    statusEl.textContent = 'Could not start voice input: ' + err.message;
+  }
+}
+
+function applyVoiceDictation() {
+  const statusEl = document.getElementById('voiceStatus');
+  const summaryEl = document.getElementById('voiceSummary');
+  const raw = document.getElementById('voiceTranscript').value || '';
+  if (!raw.trim()) {
+    statusEl.textContent = 'Dictate or type a description first.';
+    return;
+  }
+  const t = voiceExpandSynonyms(' ' + voiceNormalize(raw) + ' ');
+  const applied = [];
+  const missed = [];
+
+  const territoryOpt = voiceMatchTerritory(t);
+  if (territoryOpt && territoryOpt.value !== currentTerritory.code) {
+    selectTerritory(territoryOpt.value);
+    applied.push('Territory → ' + territoryOpt.text);
+  }
+
+  const coverageOpt = voiceMatchOption(t, voiceSelectOptions('coverage'));
+  if (coverageOpt) {
+    document.getElementById('coverage').value = coverageOpt.value;
+    onCoverageChange();
+    applied.push('Coverage → ' + coverageOpt.text);
+  } else missed.push('Coverage');
+
+  const vehUseOpt = voiceMatchOption(t, voiceSelectOptions('vehUse'));
+  if (vehUseOpt) {
+    document.getElementById('vehUse').value = vehUseOpt.value;
+    if (window.onVehicleUseChange) onVehicleUseChange();
+    applied.push('Vehicle Use → ' + vehUseOpt.text);
+  } else missed.push('Vehicle Use');
+
+  const vehTypeOpt = voiceMatchOption(t, voiceSelectOptions('vehType'));
+  if (vehTypeOpt) {
+    document.getElementById('vehType').value = vehTypeOpt.value;
+    applied.push('Vehicle Type → ' + vehTypeOpt.text);
+  }
+
+  const year = voiceFindYear(t);
+  if (year) {
+    document.getElementById('vehYear').value = year;
+    applied.push('Year → ' + year);
+  }
+
+  const engOpt = voiceMatchEngineSize(t);
+  if (engOpt) {
+    document.getElementById('engSize').value = engOpt.value;
+    applied.push('Engine Size → ' + engOpt.text);
+  }
+
+  // Strip anything already claimed by another field (year, engine-size clause, seat count)
+  // before hunting for a dollar value, so e.g. "engine under 1600" can't be mistaken for a price.
+  let moneyScan = t;
+  if (year) moneyScan = moneyScan.replace(new RegExp('\\b' + year + '\\b'), ' ');
+  moneyScan = moneyScan.replace(/\b(?:19[6-9]\d|20[0-2]\d)\b/g, ' ');
+  if (engOpt) {
+    moneyScan.split(/[,.;]/).forEach(clause => {
+      if (/\bcc\b|\dcc\b|\bcylinder|\bcubic|\bengine\b/.test(clause)) {
+        moneyScan = moneyScan.replace(clause, ' ');
+      }
+    });
+  }
+  moneyScan = moneyScan.replace(/\d{2,4}\s*cc\b/g, ' ');
+  moneyScan = moneyScan.replace(/\b\d{1,2}\s*(?:seats?|passengers?|persons?|occupants?)\b/g, ' ');
+  const value = voiceFindMoneyValue(moneyScan);
+
+  // Make/Model/Year are only ever a convenience for looking up a value - no territory's
+  // premium math depends on them. If a dollar amount was actually said, use it and don't
+  // bother trying to resolve a catalog vehicle at all; only fall back to the catalog when
+  // no explicit value was given, so a plain "comprehensive, private, worth 45,000" is enough
+  // on its own in territories where the catalog isn't the normal path (i.e. most of them).
+  let catalogApplied = null;
+  if (value == null) {
+    catalogApplied = voiceTryCatalogLookup(t, year);
+    if (catalogApplied) applied.push(catalogApplied);
+  }
+
+  if (value != null) {
+    document.getElementById('vehValue').value = value.toFixed(2);
+    applied.push('Vehicle Value → ' + fmt(value));
+  } else if (!catalogApplied) {
+    missed.push('Vehicle Value');
+  }
+
+  const seats = voiceFindSeats(t);
+  if (seats != null) {
+    document.getElementById('passLiab').value = seats;
+    applied.push('Passengers → ' + seats);
+  }
+
+  const sex = voiceMatchSex(t);
+  if (sex) {
+    document.getElementById('sex').value = sex;
+    applied.push('Sex → ' + (sex === 'F' ? 'Female' : 'Male'));
+  }
+
+  const ageOpt = voiceMatchAgeOption(t);
+  if (ageOpt) {
+    document.getElementById('ageCat').value = ageOpt.value;
+    applied.push('Age → ' + ageOpt.text);
+  } else missed.push('Driver Age');
+
+  const exp = voiceMatchDriverExp(t);
+  if (exp != null) {
+    document.getElementById('driverExp').value = exp;
+    applied.push('Driving Experience → ' + (exp === '3' ? 'More than 2 years' : 'Less than 2 years'));
+  }
+
+  const ncd = voiceFindNcd(t);
+  if (ncd != null) {
+    document.getElementById('ncd').value = ncd;
+    applied.push('NCD → ' + ncd + '%');
+  }
+
+  const rateUp = voiceFindRateUp(t);
+  if (rateUp != null) {
+    document.getElementById('rateUp').value = rateUp;
+    applied.push('Rate Up → ' + rateUp + '%');
+  }
+
+  const flagLabels = { aald: 'AALD', forLic: 'Foreign License', fleet: 'Fleet Discount', staff: 'Staff Discount', newVeh: 'New Vehicle', rental: 'Rental Surcharge' };
+  const flags = voiceMatchFlags(t);
+  Object.entries(flags).forEach(([id, val]) => {
+    if (val === null) return;
+    const el = document.getElementById(id);
+    if (el && el.checked !== val) {
+      el.checked = val;
+      el.dispatchEvent(new Event('change'));
+      applied.push((flagLabels[id] || id) + ' → Yes');
+    }
+  });
+
+  calculate();
+
+  summaryEl.classList.remove('hidden');
+  summaryEl.innerHTML = (applied.length ? '<strong>Filled:</strong> ' + applied.join(' · ') : '<strong>Nothing recognized.</strong>')
+    + (missed.length ? '<br><span class="voice-miss">Not detected: ' + missed.join(', ') + '</span>' : '');
+  statusEl.textContent = 'Applied — review the fields below before quoting.';
+}
+
 // Run on load — attach territory backdrop listener after DOM is ready, then calculate
 window.addEventListener('load', () => {
+  if (!getSpeechRecognitionCtor()) {
+    const micBtn = document.getElementById('voiceMicBtn');
+    const statusEl = document.getElementById('voiceStatus');
+    if (micBtn) { micBtn.disabled = true; micBtn.style.opacity = '0.5'; micBtn.style.cursor = 'not-allowed'; }
+    if (statusEl) statusEl.textContent = "This browser can't capture voice — try Chrome or Edge, or just type a description and click Fill Form.";
+  }
   updateCoverPeriod();
   updateTerritoryDisplay();
   document.getElementById('territoryOverlay').addEventListener('click', function(e) {
